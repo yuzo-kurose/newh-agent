@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
 function extractJSON(raw: string): { success: boolean; text: string } {
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
+  // Remove markdown code blocks first
+  let cleaned = raw
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/gi, "")
+    .trim();
+
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
   if (start === -1 || end === -1) return { success: false, text: raw };
 
-  let json = raw.slice(start, end + 1);
+  let json = cleaned.slice(start, end + 1);
 
   // Fix unescaped control characters inside strings
   let inString = false;
@@ -21,7 +27,6 @@ function extractJSON(raw: string): { success: boolean; text: string } {
       if (ch === "\n") { result += "\\n"; continue; }
       if (ch === "\r") { result += "\\r"; continue; }
       if (ch === "\t") { result += "\\t"; continue; }
-      // Remove other control characters
       if (ch.charCodeAt(0) < 32) continue;
     }
     result += ch;
@@ -31,13 +36,12 @@ function extractJSON(raw: string): { success: boolean; text: string } {
     JSON.parse(result);
     return { success: true, text: result };
   } catch {
-    // Try removing trailing commas
     const fixed = result.replace(/,(\s*[}\]])/g, "$1");
     try {
       JSON.parse(fixed);
       return { success: true, text: fixed };
     } catch {
-      return { success: false, text: raw };
+      return { success: false, text: `JSONパースエラー: ${result.slice(0, 300)}` };
     }
   }
 }
@@ -53,8 +57,7 @@ export async function POST(req: NextRequest) {
 
     const client = new Anthropic({ apiKey });
 
-    // Add explicit JSON formatting instruction
-    const enhancedSystem = system + "\n\n重要: JSONの文字列値の中に改行文字を含めないこと。改行が必要な場合は\\nと書くこと。JSONのみを1行で出力すること。";
+    const enhancedSystem = system + "\n\n厳守事項: JSONのみを返すこと。```json などのMarkdownコードブロックは絶対に使わないこと。文字列値の中に改行を入れないこと。";
 
     const message = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -67,7 +70,7 @@ export async function POST(req: NextRequest) {
     const { success, text } = extractJSON(raw);
 
     if (!success) {
-      return NextResponse.json({ error: `JSONパースエラー: ${text.slice(0, 200)}` }, { status: 500 });
+      return NextResponse.json({ error: text }, { status: 500 });
     }
 
     return NextResponse.json({ text });
