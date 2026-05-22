@@ -1,6 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
+function sanitizeJSON(raw: string): string {
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start === -1 || end === -1) return raw;
+
+  let json = raw.slice(start, end + 1);
+
+  // Replace literal newlines inside string values with \n escape
+  // This fixes the most common cause of JSON parse errors
+  let inString = false;
+  let escaped = false;
+  let result = "";
+
+  for (let i = 0; i < json.length; i++) {
+    const ch = json[i];
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escaped = true;
+      result += ch;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+    if (inString && ch === "\n") {
+      result += "\\n";
+      continue;
+    }
+    if (inString && ch === "\r") {
+      result += "\\r";
+      continue;
+    }
+    if (inString && ch === "\t") {
+      result += "\\t";
+      continue;
+    }
+    result += ch;
+  }
+
+  return result;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { system, userContent, maxTokens = 1000 } = await req.json();
@@ -20,24 +68,17 @@ export async function POST(req: NextRequest) {
     });
 
     const raw = message.content.find((b) => b.type === "text")?.text ?? "";
+    const sanitized = sanitizeJSON(raw);
 
-    // Extract JSON robustly
-    const start = raw.indexOf("{");
-    const end = raw.lastIndexOf("}");
-    if (start === -1 || end === -1) {
-      return NextResponse.json({ text: raw });
-    }
-    const jsonStr = raw.slice(start, end + 1);
-
-    // Validate JSON is parseable before returning
+    // Validate
     try {
-      JSON.parse(jsonStr);
+      JSON.parse(sanitized);
     } catch {
-      // Return raw text if JSON is malformed, client will handle
+      // If still broken, return raw so client can show error
       return NextResponse.json({ text: raw });
     }
 
-    return NextResponse.json({ text: jsonStr });
+    return NextResponse.json({ text: sanitized });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
