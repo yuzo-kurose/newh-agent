@@ -1,52 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
-function sanitizeJSON(raw: string): string {
+function extractJSON(raw: string): { success: boolean; text: string } {
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
-  if (start === -1 || end === -1) return raw;
+  if (start === -1 || end === -1) return { success: false, text: raw };
 
   let json = raw.slice(start, end + 1);
 
-  // Replace literal newlines inside string values with \n escape
-  // This fixes the most common cause of JSON parse errors
+  // Fix unescaped control characters inside strings
   let inString = false;
   let escaped = false;
   let result = "";
-
   for (let i = 0; i < json.length; i++) {
     const ch = json[i];
-    if (escaped) {
-      result += ch;
-      escaped = false;
-      continue;
-    }
-    if (ch === "\\") {
-      escaped = true;
-      result += ch;
-      continue;
-    }
-    if (ch === '"') {
-      inString = !inString;
-      result += ch;
-      continue;
-    }
-    if (inString && ch === "\n") {
-      result += "\\n";
-      continue;
-    }
-    if (inString && ch === "\r") {
-      result += "\\r";
-      continue;
-    }
-    if (inString && ch === "\t") {
-      result += "\\t";
-      continue;
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === "\\") { escaped = true; result += ch; continue; }
+    if (ch === '"') { inString = !inString; result += ch; continue; }
+    if (inString) {
+      if (ch === "\n") { result += "\\n"; continue; }
+      if (ch === "\r") { result += "\\r"; continue; }
+      if (ch === "\t") { result += "\\t"; continue; }
+      // Remove other control characters
+      if (ch.charCodeAt(0) < 32) continue;
     }
     result += ch;
   }
 
-  return result;
+  try {
+    JSON.parse(result);
+    return { success: true, text: result };
+  } catch {
+    // Try removing trailing commas
+    const fixed = result.replace(/,(\s*[}\]])/g, "$1");
+    try {
+      JSON.parse(fixed);
+      return { success: true, text: fixed };
+    } catch {
+      return { success: false, text: raw };
+    }
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -60,25 +53,24 @@ export async function POST(req: NextRequest) {
 
     const client = new Anthropic({ apiKey });
 
+    // Add explicit JSON formatting instruction
+    const enhancedSystem = system + "\n\n重要: JSONの文字列値の中に改行文字を含めないこと。改行が必要な場合は\\nと書くこと。JSONのみを1行で出力すること。";
+
     const message = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: maxTokens,
-      system,
+      system: enhancedSystem,
       messages: [{ role: "user", content: userContent }],
     });
 
     const raw = message.content.find((b) => b.type === "text")?.text ?? "";
-    const sanitized = sanitizeJSON(raw);
+    const { success, text } = extractJSON(raw);
 
-    // Validate
-    try {
-      JSON.parse(sanitized);
-    } catch {
-      // If still broken, return raw so client can show error
-      return NextResponse.json({ text: raw });
+    if (!success) {
+      return NextResponse.json({ error: `JSONパースエラー: ${text.slice(0, 200)}` }, { status: 500 });
     }
 
-    return NextResponse.json({ text: sanitized });
+    return NextResponse.json({ text });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
