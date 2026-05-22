@@ -115,13 +115,14 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
     }
   };
 
-  const generateImage = async () => {
+  const generateImage = async (provider: "gemini" | "openai") => {
     if (!selectedSlide || !selectedKey || imageLoading) return;
     setImageLoading(true);
     setImageError(null);
     try {
       const design = getSlideDesignProfile(selectedSlide.designId);
-      const res = await fetch("/api/slide-image", {
+      const endpoint = provider === "openai" ? "/api/slide-image-openai" : "/api/slide-image";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slide: selectedSlide, design }),
@@ -172,7 +173,10 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
             <button onClick={startEdit} style={{ padding:"7px 11px", borderRadius:8, border:`1px solid ${T.border}`, background:T.offWhite, color:T.inkMuted, cursor:"pointer", fontSize:12, fontWeight:700 }}>仮説を編集</button>
             <button onClick={generateSlide} disabled={slideLoading} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:slideLoading?T.paper:phase.band, color:slideLoading?T.inkFaint:T.white, cursor:slideLoading?"not-allowed":"pointer", fontSize:12, fontWeight:800 }}>{slideLoading ? "生成中..." : "スライド生成"}</button>
             {selectedSlide && (
-              <button onClick={generateImage} disabled={imageLoading} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:imageLoading?T.paper:"#4285F4", color:imageLoading?T.inkFaint:T.white, cursor:imageLoading?"not-allowed":"pointer", fontSize:12, fontWeight:800 }}>{imageLoading ? "AI画像生成中..." : "🎨 AI ビジュアル"}</button>
+              <>
+                <button onClick={() => generateImage("gemini")} disabled={imageLoading} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:imageLoading?T.paper:"#4285F4", color:imageLoading?T.inkFaint:T.white, cursor:imageLoading?"not-allowed":"pointer", fontSize:12, fontWeight:800 }}>{imageLoading ? "生成中..." : "🎨 Gemini"}</button>
+                <button onClick={() => generateImage("openai")} disabled={imageLoading} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:imageLoading?T.paper:"#10A37F", color:imageLoading?T.inkFaint:T.white, cursor:imageLoading?"not-allowed":"pointer", fontSize:12, fontWeight:800 }}>{imageLoading ? "生成中..." : "🖼 gpt-image"}</button>
+              </>
             )}
           </div>
 
