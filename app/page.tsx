@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PHASES, T, TaskHypothesisMap } from "./lib/constants";
+import { PHASES, T, TaskHypothesis, TaskHypothesisMap, TaskSlide, TaskSlideMap } from "./lib/constants";
 import Sidebar from "./components/Sidebar";
 import PhaseHeader from "./components/PhaseHeader";
 import TasksTab from "./components/TasksTab";
@@ -12,6 +12,7 @@ import ProjectContextTab from "./components/ProjectContextTab";
 
 const COMPLETED_TASKS_STORAGE_KEY = "newh-agent.completedTasks";
 const TASK_HYPOTHESES_STORAGE_KEY = "newh-agent.taskHypotheses";
+const TASK_SLIDES_STORAGE_KEY = "newh-agent.taskSlides";
 const PROJECT_CONTEXT_STORAGE_KEY = "newh-agent.projectContext";
 
 function loadCompletedTasks(): Record<string, boolean> {
@@ -43,11 +44,24 @@ function loadProjectContext(): string {
   return window.localStorage.getItem(PROJECT_CONTEXT_STORAGE_KEY) ?? "";
 }
 
+function loadTaskSlides(): TaskSlideMap {
+  if (typeof window === "undefined") return {};
+  try {
+    const stored = window.localStorage.getItem(TASK_SLIDES_STORAGE_KEY);
+    if (!stored) return {};
+    const parsed = JSON.parse(stored);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function NEWhAgent() {
   const [activePhase, setActivePhase] = useState(0);
   const [activeView, setActiveView] = useState<"context" | "phase">("phase");
   const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>(loadCompletedTasks);
   const [generatedHypotheses, setGeneratedHypotheses] = useState<TaskHypothesisMap>(loadTaskHypotheses);
+  const [taskSlides, setTaskSlides] = useState<TaskSlideMap>(loadTaskSlides);
   const [projectContext, setProjectContextState] = useState(loadProjectContext);
   const [activeTab, setActiveTab] = useState<"tasks" | "checks" | "chat">("tasks");
   const [showGenerator, setShowGenerator] = useState(false);
@@ -90,6 +104,18 @@ export default function NEWhAgent() {
     setActiveView("phase");
   };
 
+  const updateHypothesis = (key: string, hypothesis: TaskHypothesis) => {
+    const nextHypotheses = { ...generatedHypotheses, [key]: hypothesis };
+    setGeneratedHypotheses(nextHypotheses);
+    window.localStorage.setItem(TASK_HYPOTHESES_STORAGE_KEY, JSON.stringify(nextHypotheses));
+  };
+
+  const updateTaskSlide = (key: string, slide: TaskSlide) => {
+    const nextSlides = { ...taskSlides, [key]: slide };
+    setTaskSlides(nextSlides);
+    window.localStorage.setItem(TASK_SLIDES_STORAGE_KEY, JSON.stringify(nextSlides));
+  };
+
   return (
     <div style={{ fontFamily:"'Helvetica Neue',Helvetica,'Hiragino Sans','Noto Sans JP',sans-serif", background:T.offWhite, minHeight:"100vh", color:T.ink, display:"flex", flexDirection:"column" }}>
       {showGenerator && <GeneratorModal phase={phase} projectContext={projectContext} onApply={applyHypotheses} onClose={() => setShowGenerator(false)} />}
@@ -101,9 +127,6 @@ export default function NEWhAgent() {
           <div style={{ fontSize:14, fontWeight:800, color:T.ink, letterSpacing:"-0.02em" }}>NEWh 新規事業創出支援</div>
           <div style={{ fontSize:10, color:T.inkFaint }}>Innovation Design & Studio</div>
         </div>
-        <button onClick={() => setShowGenerator(true)} style={{ marginLeft:"auto", padding:"8px 16px", background:T.ink, border:"none", borderRadius:8, color:T.white, fontSize:13, fontWeight:700, cursor:"pointer" }}>
-          タスク仮説生成 →
-        </button>
       </header>
 
       <div style={{ display:"flex", flex:1, overflow:"hidden", height:"calc(100vh - 57px)" }}>
@@ -124,7 +147,7 @@ export default function NEWhAgent() {
             </div>
           )}
 
-          {activeView==="phase" && <div style={{ display:"flex", borderBottom:`1px solid ${T.border}`, background:T.white, flexShrink:0 }}>
+          {activeView==="phase" && <div style={{ display:"flex", alignItems:"center", borderBottom:`1px solid ${T.border}`, background:T.white, flexShrink:0 }}>
             {(["tasks","checks","chat"] as const).map(tab => {
               const labels = { tasks:"タスク", checks:"チェック", chat:"AI相談" };
               return (
@@ -134,11 +157,14 @@ export default function NEWhAgent() {
                 </button>
               );
             })}
+            <button onClick={() => setShowGenerator(true)} style={{ marginLeft:"auto", marginRight:16, padding:"7px 13px", background:T.ink, border:"none", borderRadius:8, color:T.white, fontSize:12, fontWeight:700, cursor:"pointer" }}>
+              タスク仮説生成 →
+            </button>
           </div>}
 
           <div style={{ flex:1, overflowY:"auto", padding:"20px" }}>
             {activeView==="context" && <ProjectContextTab context={projectContext} setContext={setProjectContext} />}
-            {activeView==="phase" && activeTab==="tasks" && <TasksTab phase={phase} completedTasks={completedTasks} generatedHypotheses={generatedHypotheses} toggleTask={toggleTask} />}
+            {activeView==="phase" && activeTab==="tasks" && <TasksTab phase={phase} completedTasks={completedTasks} generatedHypotheses={generatedHypotheses} taskSlides={taskSlides} projectContext={projectContext} toggleTask={toggleTask} updateHypothesis={updateHypothesis} updateTaskSlide={updateTaskSlide} />}
             {activeView==="phase" && activeTab==="checks" && <ChecksTab phase={phase} onOpenChat={() => setActiveTab("chat")} />}
             {activeView==="phase" && activeTab==="chat" && <ChatTab phase={phase} />}
           </div>
