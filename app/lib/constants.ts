@@ -74,6 +74,8 @@ export interface StepState {
   error: string | null;
 }
 
+export type TaskHypothesisMap = Record<string, string>;
+
 // ============================================================
 // PHASES
 // ============================================================
@@ -243,8 +245,9 @@ export const TASK_HYPOTHESES: Record<string, string> = {
   "growth-g6": "初期市場での成功が個別最適に留まる可能性があり、水平展開とパートナー戦略で成長余地を広げられる。",
 };
 
-export function getTaskHypothesis(phaseId: string, taskId: string): string {
-  return TASK_HYPOTHESES[`${phaseId}-${taskId}`] ?? "このタスクでは、現状の前提に未検証の論点が残っている可能性がある。仮説を明文化し、次の行動で検証できる形にする。";
+export function getTaskHypothesis(phaseId: string, taskId: string, generated: TaskHypothesisMap = {}): string {
+  const key = `${phaseId}-${taskId}`;
+  return generated[key] ?? TASK_HYPOTHESES[key] ?? "このタスクでは、現状の前提に未検証の論点が残っている可能性がある。仮説を明文化し、次の行動で検証できる形にする。";
 }
 
 // ============================================================

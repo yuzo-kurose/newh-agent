@@ -1,10 +1,15 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Phase, T, getTaskHypothesis } from "../lib/constants";
+import { Phase, T, TaskHypothesisMap, getTaskHypothesis } from "../lib/constants";
 
-interface Props { phase: Phase; completedTasks: Record<string, boolean>; toggleTask: (id: string) => void; }
+interface Props {
+  phase: Phase;
+  completedTasks: Record<string, boolean>;
+  generatedHypotheses: TaskHypothesisMap;
+  toggleTask: (id: string) => void;
+}
 
-export default function TasksTab({ phase, completedTasks, toggleTask }: Props) {
+export default function TasksTab({ phase, completedTasks, generatedHypotheses, toggleTask }: Props) {
   const [selectedByPhase, setSelectedByPhase] = useState<Record<string, string>>({});
   const selectedTaskId = selectedByPhase[phase.id] ?? phase.tasks[0]?.id ?? "";
   const selectedTask = useMemo(
@@ -45,8 +50,11 @@ export default function TasksTab({ phase, completedTasks, toggleTask }: Props) {
             </div>
           </div>
           <div style={{ padding:"12px 14px", background:T.offWhite, border:`1px solid ${T.borderLight}`, borderRadius:8, borderLeft:`3px solid ${phase.band}`, fontSize:13, color:T.inkLight, lineHeight:1.8 }}>
-            {getTaskHypothesis(phase.id, selectedTask.id)}
+            {getTaskHypothesis(phase.id, selectedTask.id, generatedHypotheses)}
           </div>
+          {generatedHypotheses[`${phase.id}-${selectedTask.id}`] && (
+            <div style={{ marginTop:8, fontSize:11, color:phase.band, fontWeight:700 }}>生成済み仮説</div>
+          )}
           <div style={{ marginTop:12, display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
             <span style={{ fontSize:11, color:T.inkFaint }}>進捗状態</span>
             <button onClick={() => toggleTask(selectedTask.id)}
