@@ -28,7 +28,7 @@ export default function ChatTab({ phase }: { phase: Phase }) {
       const res = await fetch("/api/agent", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ system:SYSTEM_PROMPT, userContent, maxTokens:1000 }),
+        body:JSON.stringify({ system:SYSTEM_PROMPT, userContent, maxTokens:1000, responseFormat:"text" }),
       });
       const data = await res.json();
       const reply = data.text || data.error || "回答を生成できませんでした。";

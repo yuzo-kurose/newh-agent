@@ -9,9 +9,23 @@ import ChecksTab from "./components/ChecksTab";
 import ChatTab from "./components/ChatTab";
 import GeneratorModal from "./components/GeneratorModal";
 
+const COMPLETED_TASKS_STORAGE_KEY = "newh-agent.completedTasks";
+
+function loadCompletedTasks(): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  try {
+    const stored = window.localStorage.getItem(COMPLETED_TASKS_STORAGE_KEY);
+    if (!stored) return {};
+    const parsed = JSON.parse(stored);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function NEWhAgent() {
   const [activePhase, setActivePhase] = useState(0);
-  const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>({});
+  const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>(loadCompletedTasks);
   const [activeTab, setActiveTab] = useState<"tasks" | "checks" | "chat">("tasks");
   const [showGenerator, setShowGenerator] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -21,7 +35,11 @@ export default function NEWhAgent() {
   const progress = Math.round((doneTasks / phase.tasks.length) * 100);
 
   const toggleTask = (id: string) => {
-    setCompletedTasks((p) => ({ ...p, [`${phase.id}-${id}`]: !p[`${phase.id}-${id}`] }));
+    setCompletedTasks((p) => {
+      const next = { ...p, [`${phase.id}-${id}`]: !p[`${phase.id}-${id}`] };
+      window.localStorage.setItem(COMPLETED_TASKS_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
   };
 
   return (

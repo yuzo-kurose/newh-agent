@@ -5,21 +5,15 @@ import { T, AGENTS, REVIEW_SYSTEM, PHASES } from "../lib/constants";
 interface ReviewResult { score:number; grade:string; goodPoint:string; issues:string[]; mustFix:string; passOrRetry:"pass"|"retry"; }
 interface StepState { id:string; label:string; color:string; status:"pending"|"generating"|"reviewing"|"retry"|"done"|"error"; attempt:number; review:ReviewResult|null; allReviews:{attempt:number;review:ReviewResult;data:unknown}[]; data:unknown; error:string|null; }
 
-async function callAPI(system: string, userContent: string, maxTokens=1000): Promise<string> {
+async function callJSON<T = unknown>(system: string, userContent: string, maxTokens=1000): Promise<T> {
   const res = await fetch("/api/agent", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({ system, userContent, maxTokens }),
+    body:JSON.stringify({ system, userContent, maxTokens, responseFormat:"json" }),
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);
-  return data.text;
-}
-
-function parseJSON(text: string): unknown {
-  const s = text.indexOf("{"), e = text.lastIndexOf("}");
-  if (s===-1||e===-1) throw new Error(`JSON未検出: "${text.slice(0,100)}"`);
-  return JSON.parse(text.slice(s,e+1));
+  return data.json as T;
 }
 
 const TAG = ({ children, color, bg }: { children:React.ReactNode; color:string; bg:string }) => (
@@ -65,8 +59,7 @@ export default function GeneratorModal({ onClose }: { onClose: () => void }) {
           try {
             const base = ag.build(brief, acc);
             const note = finalReview?.mustFix ? `\n\n【改善指示】${finalReview.mustFix}\n【問題点】${finalReview.issues.join("、")}` : "";
-            const text = await callAPI(ag.system, base+note, 1000);
-            gen = parseJSON(text);
+            gen = await callJSON(ag.system, base+note, 1000);
           } catch(e) { const msg = e instanceof Error ? e.message : String(e); upd(id,{status:"error",error:msg,allReviews}); throw new Error(msg); }
 
           upd(id, { status:"reviewing", attempt });
@@ -74,8 +67,7 @@ export default function GeneratorModal({ onClose }: { onClose: () => void }) {
           try {
             const prev = id!=="concept" ? JSON.stringify(acc,null,2) : null;
             const content = `【対象】${ag.label}\n【評価基準】\n${ag.reviewCriteria}\n【依頼背景】${brief}\n${prev?`【前ブロック】\n${prev}`:""}\n【アウトプット】\n${JSON.stringify(gen,null,2)}`;
-            const text = await callAPI(REVIEW_SYSTEM, content, 600);
-            rev = parseJSON(text) as ReviewResult;
+            rev = await callJSON<ReviewResult>(REVIEW_SYSTEM, content, 600);
           } catch { rev = { score:70,grade:"B",goodPoint:"レビュー取得失敗",issues:[],mustFix:"",passOrRetry:"pass" }; }
 
           allReviews.push({attempt,review:rev,data:gen});
