@@ -75,10 +75,10 @@ export interface StepState {
 }
 
 export interface TaskHypothesis {
-  hypothesis: string;
-  rationale: string;
-  validation: string;
-  output: string;
+  currentHypothesis: string;
+  missingInfo: string;
+  discussionPoints: string;
+  conclusion: string;
 }
 
 export type TaskHypothesisValue = string | TaskHypothesis;
@@ -114,42 +114,42 @@ export interface SlideDesignProfile {
 export const SLIDE_DESIGN_PROFILES: SlideDesignProfile[] = [
   {
     id: "ibm-carbon",
-    name: "IBM Carbon Enterprise",
+    name: "Enterprise Grid",
     bestFor: "大企業、製造、金融、BtoB、技術信頼性、上申資料",
     designMd: "White and light-gray enterprise canvas, charcoal type, one confident IBM blue accent, square geometry, thin borders, no shadows, data and logic first.",
     colors: { canvas: "#FFFFFF", surface: "#F4F4F4", ink: "#161616", muted: "#525252", accent: "#0F62FE" },
   },
   {
     id: "apple-premium",
-    name: "Apple Premium Minimal",
+    name: "Premium Minimal",
     bestFor: "消費者向け、体験価値、プレミアム商材、プロダクト構想",
     designMd: "Large white space, cinematic product-like composition, restrained monochrome, soft gray surfaces, precise typography, emotional but quiet.",
     colors: { canvas: "#FBFBFD", surface: "#F5F5F7", ink: "#1D1D1F", muted: "#6E6E73", accent: "#0071E3" },
   },
   {
     id: "stripe-growth",
-    name: "Stripe Growth Gradient",
+    name: "Growth Gradient",
     bestFor: "Fintech、SaaS、成長戦略、決済、プラットフォーム事業",
     designMd: "Clean SaaS precision with elegant purple-blue accents, subtle gradients, crisp cards, metrics-forward layout, sophisticated growth narrative.",
     colors: { canvas: "#FFFFFF", surface: "#F6F9FC", ink: "#0A2540", muted: "#425466", accent: "#635BFF" },
   },
   {
     id: "notion-warm",
-    name: "Notion Warm Workspace",
+    name: "Warm Workspace",
     bestFor: "共創、ワークショップ、組織変革、ナレッジ、教育",
     designMd: "Warm minimal workspace, paper-like surfaces, calm typography, gentle borders, note-taking structure, human and collaborative.",
     colors: { canvas: "#FBFAF8", surface: "#F1EFEC", ink: "#2F3437", muted: "#787774", accent: "#A65F2B" },
   },
   {
     id: "linear-precision",
-    name: "Linear Precision Dark",
+    name: "Precision Dark",
     bestFor: "開発組織、プロダクトマネジメント、実行計画、ロードマップ",
     designMd: "Ultra-minimal dark precision, compact information density, violet accent, crisp hierarchy, roadmap and execution oriented.",
     colors: { canvas: "#0D0E12", surface: "#17181F", ink: "#F7F8F8", muted: "#A1A1AA", accent: "#8B5CF6" },
   },
   {
     id: "miro-workshop",
-    name: "Miro Workshop Canvas",
+    name: "Workshop Canvas",
     bestFor: "アイデア発散、リサーチ統合、ワークショップ、未来構想",
     designMd: "Bright collaboration board, yellow accent, sticky-note energy, modular blocks, friendly visual organization for divergent thinking.",
     colors: { canvas: "#FFFDF2", surface: "#FFFFFF", ink: "#050038", muted: "#6B6880", accent: "#FFD02F" },
@@ -332,25 +332,31 @@ export const TASK_HYPOTHESES: Record<string, string> = {
 export function normalizeTaskHypothesis(value: TaskHypothesisValue | undefined): TaskHypothesis {
   if (!value) {
     return {
-      hypothesis: "このタスクでは、現状の前提に未検証の論点が残っている可能性がある。",
-      rationale: "案件固有の情報がまだ不足しているため、まずは前提を明文化する必要がある。",
-      validation: "関係者ヒアリングや既存資料確認で、事実・期待・制約を確認する。",
-      output: "検証すべき論点と次に集める情報のリスト",
+      currentHypothesis: "このタスクでは、現状の前提に未検証の論点が残っている可能性がある。",
+      missingInfo: "案件固有の情報がまだ不足しているため、まずは前提を明文化する必要がある。",
+      discussionPoints: "関係者ヒアリングや既存資料確認で、事実・期待・制約を確認する。",
+      conclusion: "検証すべき論点と次に集める情報を整理する。",
     };
   }
   if (typeof value === "string") {
     return {
-      hypothesis: value,
-      rationale: "入力情報とNEWhの標準プロセスから導いた初期仮説。",
-      validation: "この仮説が成り立つか、関係者・顧客・市場情報で確認する。",
-      output: "更新された仮説と次アクション",
+      currentHypothesis: value,
+      missingInfo: "タスク完了に必要な情報を、関係者・顧客・市場情報から補う必要がある。",
+      discussionPoints: "仮説の妥当性、優先度、意思決定に必要な確認事項を議論する。",
+      conclusion: "議論結果をもとに、タスクの成果物と次アクションを確定する。",
     };
   }
+  const legacy = value as TaskHypothesis & {
+    hypothesis?: string;
+    rationale?: string;
+    validation?: string;
+    output?: string;
+  };
   return {
-    hypothesis: value.hypothesis || "仮説が未設定です。",
-    rationale: value.rationale || "根拠が未設定です。",
-    validation: value.validation || "確認ポイントが未設定です。",
-    output: value.output || "成果物が未設定です。",
+    currentHypothesis: legacy.currentHypothesis || legacy.hypothesis || "現状仮説が未設定です。",
+    missingInfo: legacy.missingInfo || legacy.rationale || "不足情報が未設定です。",
+    discussionPoints: legacy.discussionPoints || legacy.validation || "議論ポイントが未設定です。",
+    conclusion: legacy.conclusion || legacy.output || "結論が未設定です。",
   };
 }
 

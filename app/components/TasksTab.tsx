@@ -28,7 +28,7 @@ const SLIDE_SYSTEM = `あなたはNEWhの事業開発資料を作るシニアス
 指定タスクの仮説と成果物をもとに、1枚スライドの内容を作ってください。
 awesome-design-mdのDESIGN.md思想に従い、クライアント文脈に最も合うdesign profileを1つ選び、内容とデザインが整合するようにしてください。
 JSONのみ返してください。
-形式: {"title":"スライドタイトル","subtitle":"補足見出し","keyMessage":"一番伝えたい主張","designId":"選択したdesign profile id","designName":"選択したdesign profile名","designRationale":"このクライアントにこのデザインが合う理由","sections":[{"heading":"見出し","bullets":["箇条書き"]}],"speakerNote":"話す時の補足"}`;
+形式: {"title":"スライドタイトル","subtitle":"補足見出し","keyMessage":"一番伝えたい主張","designId":"選択したdesign profile id","designName":"社名ではなくデザイントーン名","designRationale":"このクライアントにこのデザインが合う理由。会社名は出さない","sections":[{"heading":"見出し","bullets":["箇条書き"]}],"speakerNote":"話す時の補足"}`;
 
 export default function TasksTab({ phase, completedTasks, generatedHypotheses, taskSlides, projectContext, toggleTask, updateHypothesis, updateTaskSlide }: Props) {
   const [selectedByPhase, setSelectedByPhase] = useState<Record<string, string>>({});
@@ -45,6 +45,7 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
   const selectedHypothesis = selectedTask ? getTaskHypothesis(phase.id, selectedTask.id, generatedHypotheses) : null;
   const selectedKey = selectedTask ? `${phase.id}-${selectedTask.id}` : "";
   const selectedSlide = selectedKey ? taskSlides[selectedKey] : null;
+  const cleanDesignName = (name: string) => name.replace(/^(IBM|Apple|Stripe|Notion|Linear|Miro)\s*/i, "");
 
   const startEdit = () => {
     if (!selectedHypothesis) return;
@@ -68,9 +69,9 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
       updateTaskSlide(selectedKey, {
         title: slide.title || selectedTask.label,
         subtitle: slide.subtitle || phase.label,
-        keyMessage: slide.keyMessage || selectedHypothesis.hypothesis,
+        keyMessage: slide.keyMessage || selectedHypothesis.currentHypothesis,
         designId: profile.id,
-        designName: slide.designName || profile.name,
+        designName: cleanDesignName(slide.designName || profile.name),
         designRationale: slide.designRationale || "プロジェクト文脈に合わせて自動選択しました。",
         sections: Array.isArray(slide.sections) ? slide.sections.slice(0, 4) : [],
         speakerNote: slide.speakerNote || "",
@@ -121,10 +122,10 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
           {editing && draft ? (
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {([
-                ["hypothesis", "仮説"],
-                ["rationale", "根拠"],
-                ["validation", "確認ポイント"],
-                ["output", "成果物"],
+                ["currentHypothesis", "現状仮説"],
+                ["missingInfo", "不足情報"],
+                ["discussionPoints", "議論ポイント"],
+                ["conclusion", "結論"],
               ] as const).map(([key, label]) => (
                 <label key={key} style={{ display:"flex", flexDirection:"column", gap:4 }}>
                   <span style={{ fontSize:10, fontWeight:800, color:T.inkFaint, textTransform:"uppercase", letterSpacing:"0.06em" }}>{label}</span>
@@ -140,10 +141,10 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {[
-              { label:"仮説", value:selectedHypothesis?.hypothesis, color:phase.band },
-              { label:"根拠", value:selectedHypothesis?.rationale, color:T.blue },
-              { label:"確認ポイント", value:selectedHypothesis?.validation, color:T.orange },
-              { label:"成果物", value:selectedHypothesis?.output, color:T.green },
+              { label:"現状仮説", value:selectedHypothesis?.currentHypothesis, color:phase.band },
+              { label:"不足情報", value:selectedHypothesis?.missingInfo, color:T.blue },
+              { label:"議論ポイント", value:selectedHypothesis?.discussionPoints, color:T.orange },
+              { label:"結論", value:selectedHypothesis?.conclusion, color:T.green },
             ].map((item) => (
               <div key={item.label} style={{ padding:"11px 12px", background:T.offWhite, border:`1px solid ${T.borderLight}`, borderRadius:8, borderLeft:`3px solid ${item.color}` }}>
                 <div style={{ fontSize:10, fontWeight:800, color:item.color, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>{item.label}</div>
@@ -169,10 +170,10 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
                   <div style={{ fontSize:15, fontWeight:900, color:design.colors.ink, lineHeight:1.4 }}>{selectedSlide.title}</div>
                   <div style={{ fontSize:12, color:design.colors.muted, marginTop:3 }}>{selectedSlide.subtitle}</div>
                 </div>
-                <div style={{ padding:"3px 7px", background:design.colors.surface, color:design.colors.accent, border:`1px solid ${dark ? "#333640" : T.border}`, borderRadius:design.id==="ibm-carbon"?0:999, fontSize:10, fontWeight:800, whiteSpace:"nowrap" }}>{selectedSlide.designName}</div>
+                <div style={{ padding:"3px 7px", background:design.colors.surface, color:design.colors.accent, border:`1px solid ${dark ? "#333640" : T.border}`, borderRadius:design.id==="ibm-carbon"?0:999, fontSize:10, fontWeight:800, whiteSpace:"nowrap" }}>{cleanDesignName(selectedSlide.designName)}</div>
               </div>
               <div style={{ marginTop:10, padding:"9px 11px", background:design.colors.surface, borderRadius:design.id==="ibm-carbon"?0:8, borderLeft:`3px solid ${design.colors.accent}`, fontSize:12, color:design.colors.ink, lineHeight:1.7 }}>{selectedSlide.keyMessage}</div>
-              <div style={{ marginTop:8, fontSize:10, color:design.colors.muted, lineHeight:1.5 }}>Design: {selectedSlide.designRationale}</div>
+                <div style={{ marginTop:8, fontSize:10, color:design.colors.muted, lineHeight:1.5 }}>Design tone: {selectedSlide.designRationale}</div>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>
                 {selectedSlide.sections.map((section, i) => (
                   <div key={i}>
