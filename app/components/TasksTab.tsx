@@ -27,9 +27,36 @@ async function callJSON<T>(system: string, userContent: string, maxTokens = 1800
 
 const SLIDE_SYSTEM = `あなたはNEWhの事業開発資料を作るシニアストラテジストです。
 指定タスクの仮説と成果物をもとに、1枚スライドの内容を作ってください。
-awesome-design-mdのDESIGN.md思想に従い、クライアント文脈に最も合うdesign profileを1つ選び、内容とデザインが整合するようにしてください。
-JSONのみ返してください。
-形式: {"title":"スライドタイトル","subtitle":"補足見出し","keyMessage":"一番伝えたい主張","designId":"選択したdesign profile id","designName":"社名ではなくデザイントーン名","designRationale":"このクライアントにこのデザインが合う理由。会社名は出さない","sections":[{"heading":"見出し","bullets":["箇条書き"]}],"speakerNote":"話す時の補足"}`;
+クライアント文脈に最も合うdesign profileを1つ選び、内容とデザインが整合するようにしてください。
+
+【重要】箇条書き（bullets）ではなく、内容に最適なビジュアル表現を選んでください：
+- table: 構造化データ、比較マトリクス、要件一覧
+- comparison: A vs B vs C の並列比較（案件比較、オプション選択）
+- flow: プロセス・ステップ・因果関係の流れ
+- kpi: 重要指標・数値・ターゲット値のハイライト
+- matrix: 2軸マトリクス（優先度×影響度、横軸×縦軸の分類）
+- bullets: 上記に当てはまらない場合のみ使用
+
+JSONのみ返してください。前置き不要。
+形式:
+{
+  "title": "スライドタイトル",
+  "subtitle": "補足見出し",
+  "keyMessage": "一番伝えたい主張（1文）",
+  "designId": "選択したdesign profile id",
+  "designName": "社名ではなくデザイントーン名",
+  "designRationale": "このクライアントにこのデザインが合う理由（会社名不要）",
+  "sections": [
+    各sectionは以下のいずれかのtype形式で:
+    {"heading":"見出し","type":"bullets","bullets":["項目"]},
+    {"heading":"見出し","type":"table","table":{"headers":["列名"],"rows":[["セル"]]}},
+    {"heading":"見出し","type":"comparison","comparison":{"criteria":["評価軸"],"items":[{"label":"案名","values":["値"]}]}},
+    {"heading":"見出し","type":"flow","flow":{"steps":[{"label":"ステップ名","desc":"説明"}]}},
+    {"heading":"見出し","type":"kpi","kpi":{"metrics":[{"label":"指標名","value":"数値","unit":"単位","trend":"up|down|flat"}]}},
+    {"heading":"見出し","type":"matrix","matrix":{"xLabel":"X軸ラベル","yLabel":"Y軸ラベル","cells":[{"x":"high|low","y":"high|low","label":"項目名","desc":"説明"}]}}
+  ],
+  "speakerNote": "話す時の補足"
+}`;
 
 export default function TasksTab({ phase, completedTasks, generatedHypotheses, taskSlides, projectContext, toggleTask, updateHypothesis, updateTaskSlide }: Props) {
   const [selectedByPhase, setSelectedByPhase] = useState<Record<string, string>>({});
@@ -74,7 +101,7 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
         designId: profile.id,
         designName: cleanDesignName(slide.designName || profile.name),
         designRationale: slide.designRationale || "プロジェクト文脈に合わせて自動選択しました。",
-        sections: Array.isArray(slide.sections) ? slide.sections.slice(0, 4) : [],
+        sections: Array.isArray(slide.sections) ? slide.sections : [],
         speakerNote: slide.speakerNote || "",
       });
     } catch (e) {
@@ -85,7 +112,7 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
   };
 
   return (
-    <div className="tasks-layout" style={{ display:"grid", gridTemplateColumns:"minmax(0, 1fr) minmax(280px, 1fr)", gap:14, alignItems:"start" }}>
+    <div className="tasks-layout" style={{ display:"grid", gridTemplateColumns:"3fr 7fr", gap:14, alignItems:"start" }}>
       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
         {phase.tasks.map(task => {
           const done = !!completedTasks[`${phase.id}-${task.id}`];

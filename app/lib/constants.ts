@@ -84,6 +84,19 @@ export interface TaskHypothesis {
 export type TaskHypothesisValue = string | TaskHypothesis;
 export type TaskHypothesisMap = Record<string, TaskHypothesisValue>;
 
+export type SlideSectionType = "bullets" | "table" | "comparison" | "flow" | "kpi" | "matrix";
+
+export interface SlideSection {
+  heading: string;
+  type: SlideSectionType;
+  bullets?: string[];
+  table?: { headers: string[]; rows: string[][] };
+  comparison?: { criteria: string[]; items: { label: string; values: string[] }[] };
+  flow?: { steps: { label: string; desc?: string }[] };
+  kpi?: { metrics: { label: string; value: string; unit?: string; trend?: "up" | "down" | "flat" }[] };
+  matrix?: { xLabel: string; yLabel: string; cells: { x: string; y: string; label: string; desc: string }[] };
+}
+
 export interface TaskSlide {
   title: string;
   subtitle: string;
@@ -91,7 +104,7 @@ export interface TaskSlide {
   designId: string;
   designName: string;
   designRationale: string;
-  sections: { heading: string; bullets: string[] }[];
+  sections: SlideSection[];
   speakerNote: string;
 }
 
