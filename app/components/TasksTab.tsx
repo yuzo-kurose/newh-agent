@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Phase, T, TaskHypothesis, TaskHypothesisMap, TaskSlide, TaskSlideMap, SLIDE_DESIGN_PROFILES, getSlideDesignProfile, getTaskHypothesis } from "../lib/constants";
+import SlideRenderer from "./SlideRenderer";
 
 interface Props {
   phase: Phase;
