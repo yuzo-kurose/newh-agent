@@ -48,6 +48,12 @@ Requirements:
 `.trim();
 }
 
+const CANDIDATE_MODELS = [
+  "gemini-2.0-flash-preview-image-generation",
+  "gemini-2.0-flash-exp-image-generation",
+  "gemini-2.5-flash-preview-image-generation",
+];
+
 export async function POST(req: NextRequest) {
   try {
     const { slide, design } = await req.json() as { slide: TaskSlide; design: SlideDesignProfile };
@@ -60,26 +66,30 @@ export async function POST(req: NextRequest) {
     const ai = new GoogleGenAI({ apiKey });
     const prompt = buildImagePrompt(slide, design);
 
-    const response = await ai.models.generateImages({
-      model: "imagen-3.0-generate-002",
-      prompt,
-      config: {
-        numberOfImages: 1,
-        aspectRatio: "16:9",
-        outputMimeType: "image/jpeg",
-      },
-    });
+    let lastError = "";
+    for (const model of CANDIDATE_MODELS) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: { responseModalities: ["IMAGE", "TEXT"] },
+        });
 
-    const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
-    if (!imageBytes) {
-      return NextResponse.json({ error: "画像が生成されませんでした" }, { status: 500 });
+        const parts = response.candidates?.[0]?.content?.parts ?? [];
+        const imagePart = parts.find((p) => p.inlineData?.data);
+        if (!imagePart?.inlineData) continue;
+
+        return NextResponse.json({
+          imageData: imagePart.inlineData.data,
+          mimeType: imagePart.inlineData.mimeType ?? "image/png",
+        });
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : String(e);
+        continue;
+      }
     }
 
-    const base64 = typeof imageBytes === "string"
-      ? imageBytes
-      : Buffer.from(imageBytes).toString("base64");
-
-    return NextResponse.json({ imageData: base64, mimeType: "image/jpeg" });
+    return NextResponse.json({ error: `利用可能なGeminiモデルが見つかりませんでした: ${lastError}` }, { status: 500 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
