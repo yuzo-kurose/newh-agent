@@ -106,6 +106,8 @@ export interface TaskSlide {
   designRationale: string;
   sections: SlideSection[];
   speakerNote: string;
+  imageData?: string;
+  imageMimeType?: string;
 }
 
 export type TaskSlideMap = Record<string, TaskSlide>;

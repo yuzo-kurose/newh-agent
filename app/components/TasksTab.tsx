@@ -64,6 +64,9 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
   const [draft, setDraft] = useState<TaskHypothesis | null>(null);
   const [slideLoading, setSlideLoading] = useState(false);
   const [slideError, setSlideError] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [slideView, setSlideView] = useState<"preview" | "image">("preview");
   const selectedTaskId = selectedByPhase[phase.id] ?? phase.tasks[0]?.id ?? "";
   const selectedTask = useMemo(
     () => phase.tasks.find((task) => task.id === selectedTaskId) ?? phase.tasks[0],
@@ -91,6 +94,7 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
     if (!selectedTask || !selectedHypothesis || !selectedKey || slideLoading) return;
     setSlideLoading(true);
     setSlideError(null);
+    setSlideView("preview");
     try {
       const slide = await callJSON<TaskSlide>(SLIDE_SYSTEM, `プロジェクトコンテキスト:\n${projectContext || "未入力"}\n\nフェーズ:\n${phase.label}\n${phase.description}\n\nタスク:\n${selectedTask.label}\n${selectedTask.desc}\n\n仮説情報:\n${JSON.stringify(selectedHypothesis, null, 2)}\n\n利用可能なdesign profiles:\n${JSON.stringify(SLIDE_DESIGN_PROFILES.map(({ id, name, bestFor, designMd }) => ({ id, name, bestFor, designMd })), null, 2)}\n\nこのタスクの成果物として、意思決定者に見せられる1枚スライドを作成してください。`, 2800);
       const profile = getSlideDesignProfile(slide.designId);
@@ -108,6 +112,28 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
       setSlideError(e instanceof Error ? e.message : String(e));
     } finally {
       setSlideLoading(false);
+    }
+  };
+
+  const generateImage = async () => {
+    if (!selectedSlide || !selectedKey || imageLoading) return;
+    setImageLoading(true);
+    setImageError(null);
+    try {
+      const design = getSlideDesignProfile(selectedSlide.designId);
+      const res = await fetch("/api/slide-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slide: selectedSlide, design }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      updateTaskSlide(selectedKey, { ...selectedSlide, imageData: data.imageData, imageMimeType: data.mimeType });
+      setSlideView("image");
+    } catch (e) {
+      setImageError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImageLoading(false);
     }
   };
 
@@ -142,9 +168,12 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
               <div style={{ fontSize:14, fontWeight:800, color:T.ink, lineHeight:1.5 }}>{selectedTask.label}</div>
             </div>
           </div>
-          <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+          <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap" }}>
             <button onClick={startEdit} style={{ padding:"7px 11px", borderRadius:8, border:`1px solid ${T.border}`, background:T.offWhite, color:T.inkMuted, cursor:"pointer", fontSize:12, fontWeight:700 }}>仮説を編集</button>
             <button onClick={generateSlide} disabled={slideLoading} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:slideLoading?T.paper:phase.band, color:slideLoading?T.inkFaint:T.white, cursor:slideLoading?"not-allowed":"pointer", fontSize:12, fontWeight:800 }}>{slideLoading ? "生成中..." : "スライド生成"}</button>
+            {selectedSlide && (
+              <button onClick={generateImage} disabled={imageLoading} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:imageLoading?T.paper:"#4285F4", color:imageLoading?T.inkFaint:T.white, cursor:imageLoading?"not-allowed":"pointer", fontSize:12, fontWeight:800 }}>{imageLoading ? "AI画像生成中..." : "🎨 AI ビジュアル"}</button>
+            )}
           </div>
 
           {editing && draft ? (
@@ -184,36 +213,25 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
           {generatedHypotheses[`${phase.id}-${selectedTask.id}`] && (
             <div style={{ marginTop:8, fontSize:11, color:phase.band, fontWeight:700 }}>生成済み仮説</div>
           )}
-          {slideError && <div style={{ marginTop:10, padding:"8px 10px", background:T.redLight, border:`1px solid #FCCACA`, borderRadius:8, color:T.red, fontSize:11 }}>{slideError}</div>}
+          {slideError && <div style={{ marginTop:10, padding:"8px 10px", background:T.redLight, border:`1px solid #FCCACA`, borderRadius:8, color:T.red, fontSize:12 }}>{slideError}</div>}
+          {imageError && <div style={{ marginTop:10, padding:"8px 10px", background:T.redLight, border:`1px solid #FCCACA`, borderRadius:8, color:T.red, fontSize:12 }}>AI画像エラー: {imageError}</div>}
           {selectedSlide && (
             <div style={{ marginTop:14 }}>
-              {(() => {
-                const design = getSlideDesignProfile(selectedSlide.designId);
-                const dark = design.colors.canvas.toLowerCase() !== "#ffffff" && design.colors.canvas.toLowerCase() !== "#fbfbfd" && design.colors.canvas.toLowerCase() !== "#fbfaf8" && design.colors.canvas.toLowerCase() !== "#fffdf2";
-                return (
-            <div style={{ padding:16, background:design.colors.canvas, border:`1px solid ${dark ? "#333640" : T.border}`, borderRadius:design.id==="ibm-carbon"?2:10, color:design.colors.ink }}>
-              <div style={{ fontSize:10, fontWeight:800, color:T.inkFaint, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:7 }}>Slide Draft</div>
-              <div style={{ display:"flex", justifyContent:"space-between", gap:10, alignItems:"flex-start", marginBottom:10 }}>
-                <div>
-                  <div style={{ fontSize:15, fontWeight:900, color:design.colors.ink, lineHeight:1.4 }}>{selectedSlide.title}</div>
-                  <div style={{ fontSize:12, color:design.colors.muted, marginTop:3 }}>{selectedSlide.subtitle}</div>
-                </div>
-                <div style={{ padding:"3px 7px", background:design.colors.surface, color:design.colors.accent, border:`1px solid ${dark ? "#333640" : T.border}`, borderRadius:design.id==="ibm-carbon"?0:999, fontSize:10, fontWeight:800, whiteSpace:"nowrap" }}>{cleanDesignName(selectedSlide.designName)}</div>
+              <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+                <button onClick={() => setSlideView("preview")} style={{ padding:"5px 12px", borderRadius:6, border:`1px solid ${slideView==="preview"?phase.band:T.border}`, background:slideView==="preview"?`${phase.band}18`:T.offWhite, color:slideView==="preview"?phase.band:T.inkMuted, cursor:"pointer", fontSize:12, fontWeight:700 }}>スライド</button>
+                {selectedSlide.imageData && (
+                  <button onClick={() => setSlideView("image")} style={{ padding:"5px 12px", borderRadius:6, border:`1px solid ${slideView==="image"?"#4285F4":T.border}`, background:slideView==="image"?"#EAF1FF":T.offWhite, color:slideView==="image"?"#4285F4":T.inkMuted, cursor:"pointer", fontSize:12, fontWeight:700 }}>🎨 AI 画像</button>
+                )}
               </div>
-              <div style={{ marginTop:10, padding:"9px 11px", background:design.colors.surface, borderRadius:design.id==="ibm-carbon"?0:8, borderLeft:`3px solid ${design.colors.accent}`, fontSize:12, color:design.colors.ink, lineHeight:1.7 }}>{selectedSlide.keyMessage}</div>
-                <div style={{ marginTop:8, fontSize:10, color:design.colors.muted, lineHeight:1.5 }}>Design tone: {selectedSlide.designRationale}</div>
-              <div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:10 }}>
-                {selectedSlide.sections.map((section, i) => (
-                  <div key={i}>
-                    <div style={{ fontSize:12, fontWeight:800, color:design.colors.accent, marginBottom:3 }}>{section.heading}</div>
-                    {(section.bullets || []).map((bullet, j) => <div key={j} style={{ fontSize:11, color:design.colors.muted, lineHeight:1.6 }}>- {bullet}</div>)}
-                  </div>
-                ))}
-              </div>
-              {selectedSlide.speakerNote && <div style={{ marginTop:10, fontSize:11, color:design.colors.muted, lineHeight:1.6 }}>Speaker note: {selectedSlide.speakerNote}</div>}
-            </div>
-                );
-              })()}
+              {slideView === "image" && selectedSlide.imageData ? (
+                <img
+                  src={`data:${selectedSlide.imageMimeType ?? "image/png"};base64,${selectedSlide.imageData}`}
+                  alt={selectedSlide.title}
+                  style={{ width:"100%", borderRadius:10, border:`1px solid ${T.border}`, display:"block" }}
+                />
+              ) : (
+                <SlideRenderer slide={selectedSlide} design={getSlideDesignProfile(selectedSlide.designId)} cleanDesignName={cleanDesignName} />
+              )}
             </div>
           )}
           <div style={{ marginTop:12, display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
