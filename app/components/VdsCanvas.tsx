@@ -1,7 +1,9 @@
 "use client";
+import { useState } from "react";
 import { T, ConceptResult, ConceptElementKey } from "../lib/constants";
 
 type Obj = Record<string, unknown> | undefined;
+type BlockId = "strategy" | "sustainability" | "revenue";
 
 interface Props {
   concept?: Partial<ConceptResult>;
@@ -9,6 +11,8 @@ interface Props {
   strategy?: Obj;
   sustainability?: Obj;
   revenue?: Obj;
+  onEditConcept: (field: string, value: string) => void;
+  onEditBlock: (block: BlockId, field: string, value: string) => void;
 }
 
 const str = (o: Obj | Partial<ConceptResult>, key: string): string => {
@@ -16,12 +20,51 @@ const str = (o: Obj | Partial<ConceptResult>, key: string): string => {
   return typeof v === "string" ? v : "";
 };
 
-function Cell({ label, value, color, hint }: { label: string; value: string; color: string; hint?: string }) {
+const CELL_H = 150; // 折りたたみ時の一定の高さ（約6行）
+const CLAMP_LINES = 6;
+
+function Cell({ label, value, color, hint, onSave }: { label: string; value: string; color: string; hint?: string; onSave?: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
   const filled = !!value.trim();
+  const text = filled ? value : (hint || "未確定");
+  const long = filled && value.length > 80;
+
+  const startEdit = () => { setDraft(value); setEditing(true); };
+  const save = () => { onSave?.(draft); setEditing(false); setOpen(false); };
+
   return (
-    <div style={{ border: filled ? `1px solid ${color}66` : `1px dashed ${T.inkFaint}`, background: filled ? `${color}0D` : T.offWhite, borderRadius: 8, padding: "8px 10px", minHeight: 56, display: "flex", flexDirection: "column", gap: 3 }}>
-      <div style={{ fontSize: 10, fontWeight: 800, color: filled ? color : T.inkFaint, letterSpacing: "0.02em" }}>{label}</div>
-      <div style={{ fontSize: 12, lineHeight: 1.5, color: filled ? T.ink : T.inkFaint, whiteSpace: "pre-wrap" }}>{filled ? value : (hint || "未確定")}</div>
+    <div style={{ border: filled ? `1px solid ${color}66` : `1px dashed ${T.inkFaint}`, background: filled ? `${color}0D` : T.offWhite, borderRadius: 8, padding: "7px 9px", height: open || editing ? "auto" : CELL_H, display: "flex", flexDirection: "column", gap: 3, overflow: "hidden" }}>
+      <div style={{ fontSize: 10, fontWeight: 800, color: filled ? color : T.inkFaint }}>{label}</div>
+
+      {editing ? (
+        <>
+          <textarea value={draft} onChange={(e) => setDraft(e.target.value)} autoFocus
+            style={{ width: "100%", minHeight: 64, padding: "6px 8px", border: `1.5px solid ${color}`, borderRadius: 6, fontSize: 12, lineHeight: 1.5, outline: "none", resize: "vertical", fontFamily: "inherit", color: T.ink }} />
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={save} style={{ background: color, border: "none", borderRadius: 6, color: T.white, fontSize: 11, fontWeight: 700, padding: "3px 10px", cursor: "pointer" }}>保存</button>
+            <button onClick={() => setEditing(false)} style={{ background: "transparent", border: `1px solid ${T.border}`, borderRadius: 6, color: T.inkMuted, fontSize: 11, padding: "3px 10px", cursor: "pointer" }}>取消</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={open ? { fontSize: 12, lineHeight: 1.5, color: filled ? T.ink : T.inkFaint, whiteSpace: "pre-wrap", flex: 1 }
+            : { fontSize: 12, lineHeight: 1.5, color: filled ? T.ink : T.inkFaint, display: "-webkit-box", WebkitLineClamp: CLAMP_LINES, WebkitBoxOrient: "vertical", overflow: "hidden", flex: 1 }}>
+            {text}
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {long && (
+              <button onClick={() => setOpen((o) => !o)} style={{ background: "transparent", border: "none", color, fontSize: 10, fontWeight: 700, cursor: "pointer", padding: 0 }}>
+                {open ? "閉じる ▲" : "詳細 ▾"}
+              </button>
+            )}
+            {onSave && (
+              <button onClick={startEdit} style={{ background: "transparent", border: "none", color: T.inkMuted, fontSize: 10, fontWeight: 700, cursor: "pointer", padding: 0 }}>✎ 編集</button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -41,17 +84,18 @@ const RowLabel = ({ children }: { children: React.ReactNode }) => (
   <div style={{ fontSize: 11, fontWeight: 700, color: T.inkMuted, alignSelf: "center" }}>{children}</div>
 );
 
-export default function VdsCanvas({ concept, conceptConfirmed, strategy, sustainability, revenue }: Props) {
+export default function VdsCanvas({ concept, conceptConfirmed, strategy, sustainability, revenue, onEditConcept, onEditBlock }: Props) {
   const cBlue = T.blue, cOrange = T.orange, cGreen = T.green, cPurple = T.purple;
   const ok = (k: ConceptElementKey) => conceptConfirmed.includes(k);
-  // 確定済み要素のみ値を採用する。
   const cv = (k: ConceptElementKey, key: string) => (ok(k) ? str(concept, key) : "");
+  const ec = (field: string) => (v: string) => onEditConcept(field, v);
+  const eb = (block: BlockId, field: string) => (v: string) => onEditBlock(block, field, v);
 
   return (
     <div style={{ overflowX: "auto", paddingBottom: 6 }}>
-      <div style={{ display: "flex", gap: 14, alignItems: "stretch", minWidth: 1180 }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "stretch", minWidth: 1080 }}>
         {/* コンセプト */}
-        <div style={{ flex: "0 0 380px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12 }}>
+        <div style={{ flex: "3 1 360px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12 }}>
           <BlockHeader title="コンセプト" question="誰の・どの課題に・何を提供するのか？" color={cBlue} />
           <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 1fr", gap: 6 }}>
             <div />
@@ -59,60 +103,60 @@ export default function VdsCanvas({ concept, conceptConfirmed, strategy, sustain
             <div style={{ fontSize: 10, fontWeight: 800, color: cOrange, textAlign: "center" }}>マクロ</div>
 
             <RowLabel>顧客</RowLabel>
-            <Cell label="n1顧客" value={cv("customer", "n1Customer")} color={cBlue} hint="リアルなn1顧客" />
-            <Cell label="ターゲット顧客" value={cv("customer", "customer")} color={cOrange} hint="十分な市場規模の顧客" />
+            <Cell label="n1顧客" value={cv("customer", "n1Customer")} color={cBlue} hint="リアルなn1顧客" onSave={ec("n1Customer")} />
+            <Cell label="ターゲット顧客" value={cv("customer", "customer")} color={cOrange} hint="十分な市場規模の顧客" onSave={ec("customer")} />
 
             <RowLabel>課題</RowLabel>
-            <Cell label="超具体的な課題" value={cv("issue", "microIssue")} color={cBlue} hint="共感できる超具体的な課題" />
-            <Cell label="最大公約数的な課題" value={cv("issue", "macroIssue")} color={cOrange} hint="共感できる共通課題" />
+            <Cell label="超具体的な課題" value={cv("issue", "microIssue")} color={cBlue} hint="共感できる超具体的な課題" onSave={ec("microIssue")} />
+            <Cell label="最大公約数的な課題" value={cv("issue", "macroIssue")} color={cOrange} hint="共感できる共通課題" onSave={ec("macroIssue")} />
 
             <RowLabel>手法</RowLabel>
             <div style={{ gridColumn: "2 / 4" }}>
-              <Cell label="実現性のある手法（により）" value={cv("method", "method")} color={cBlue} hint="実現性のある手法" />
+              <Cell label="実現性のある手法（により）" value={cv("method", "method")} color={cBlue} hint="実現性のある手法" onSave={ec("method")} />
             </div>
 
             <RowLabel>価値</RowLabel>
-            <Cell label="超具体的な価値" value={cv("value", "microValue")} color={cBlue} hint="渇望される超具体的な価値" />
-            <Cell label="最大公約数的な価値" value={cv("value", "macroValue")} color={cOrange} hint="渇望される共通価値" />
+            <Cell label="超具体的な価値" value={cv("value", "microValue")} color={cBlue} hint="渇望される超具体的な価値" onSave={ec("microValue")} />
+            <Cell label="最大公約数的な価値" value={cv("value", "macroValue")} color={cOrange} hint="渇望される共通価値" onSave={ec("macroValue")} />
           </div>
         </div>
 
         {/* 戦略 */}
-        <div style={{ flex: "0 0 260px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12 }}>
+        <div style={{ flex: "2 1 240px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12 }}>
           <BlockHeader title="戦略" question="どのように実現するのか？" color={cOrange} />
           <GroupLabel>優位性（なぜ勝てるのか？）</GroupLabel>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <Cell label="競合代替品" value={str(strategy, "competitor")} color={cOrange} />
-            <Cell label="選ばれる理由" value={str(strategy, "chosenReason")} color={cOrange} />
-            <Cell label="選ばれ続ける理由" value={str(strategy, "keepChosenReason")} color={cOrange} />
+            <Cell label="競合代替品" value={str(strategy, "competitor")} color={cOrange} onSave={eb("strategy", "competitor")} />
+            <Cell label="選ばれる理由" value={str(strategy, "chosenReason")} color={cOrange} onSave={eb("strategy", "chosenReason")} />
+            <Cell label="選ばれ続ける理由" value={str(strategy, "keepChosenReason")} color={cOrange} onSave={eb("strategy", "keepChosenReason")} />
           </div>
           <GroupLabel>仕組み</GroupLabel>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <Cell label="活動・機能・仕組み" value={str(strategy, "activity")} color={cOrange} />
-            <Cell label="自社リソース" value={str(strategy, "ownResource")} color={cOrange} />
-            <Cell label="パートナーリソース" value={str(strategy, "partnerResource")} color={cOrange} />
-            <Cell label="チャネル・提供手段" value={str(strategy, "channel")} color={cOrange} />
+            <Cell label="活動・機能・仕組み" value={str(strategy, "activity")} color={cOrange} onSave={eb("strategy", "activity")} />
+            <Cell label="自社リソース" value={str(strategy, "ownResource")} color={cOrange} onSave={eb("strategy", "ownResource")} />
+            <Cell label="パートナーリソース" value={str(strategy, "partnerResource")} color={cOrange} onSave={eb("strategy", "partnerResource")} />
+            <Cell label="チャネル・提供手段" value={str(strategy, "channel")} color={cOrange} onSave={eb("strategy", "channel")} />
           </div>
         </div>
 
         {/* 持続戦略 */}
-        <div style={{ flex: "0 0 230px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12 }}>
+        <div style={{ flex: "1.5 1 200px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12 }}>
           <BlockHeader title="持続戦略" question="どこに強くされていくのか？" color={cGreen} />
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <Cell label="蓄積されるもの" value={str(sustainability, "accumulated")} color={cGreen} />
-            <Cell label="成長・強化されるもの" value={str(sustainability, "strengthened")} color={cGreen} />
-            <Cell label="継続性の理由" value={str(sustainability, "sustainabilityReason")} color={cGreen} />
+            <Cell label="蓄積されるもの" value={str(sustainability, "accumulated")} color={cGreen} onSave={eb("sustainability", "accumulated")} />
+            <Cell label="成長・強化されるもの" value={str(sustainability, "strengthened")} color={cGreen} onSave={eb("sustainability", "strengthened")} />
+            <Cell label="継続性の理由" value={str(sustainability, "sustainabilityReason")} color={cGreen} onSave={eb("sustainability", "sustainabilityReason")} />
           </div>
         </div>
 
         {/* 利益モデル */}
-        <div style={{ flex: "0 0 230px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12 }}>
+        <div style={{ flex: "1.5 1 200px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12 }}>
           <BlockHeader title="利益モデル" question="収支は成立しうるのか？" color={cPurple} />
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <Cell label="回収エンジン" value={str(revenue, "recoveryEngine")} color={cPurple} />
-            <Cell label="料金モデル" value={str(revenue, "pricingModel")} color={cPurple} />
-            <Cell label="コスト構造" value={str(revenue, "costStructure")} color={cPurple} />
-            <Cell label="採算成立" value={str(revenue, "profitability")} color={cPurple} />
+            <Cell label="回収エンジン" value={str(revenue, "recoveryEngine")} color={cPurple} onSave={eb("revenue", "recoveryEngine")} />
+            <Cell label="料金モデル" value={str(revenue, "pricingModel")} color={cPurple} onSave={eb("revenue", "pricingModel")} />
+            <Cell label="コスト構造" value={str(revenue, "costStructure")} color={cPurple} onSave={eb("revenue", "costStructure")} />
+            <Cell label="採算成立" value={str(revenue, "profitability")} color={cPurple} onSave={eb("revenue", "profitability")} />
           </div>
         </div>
       </div>

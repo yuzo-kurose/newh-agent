@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
-import { AGENTS, T, ReviewResult, ConceptResult, ConceptElementKey } from "../lib/constants";
+import { AGENTS, T, ReviewResult, ConceptResult, ConceptElementKey, CONCEPT_ELEMENTS } from "../lib/constants";
 import { runBlock, BlockPhase } from "../lib/generate";
 import { Field, RenderValue } from "./conceptParts";
 import ConceptStudio from "./ConceptStudio";
@@ -90,6 +90,23 @@ export default function VdsTab({ projectContext, results, onPersist }: Props) {
     persist({ ...resultsRef.current, concept: { data, review: null, attempts: 0, confirmedElements: confirmed } });
   };
 
+  // VDS図セルの手動編集（コンセプト）。編集した要素は確定済み扱いにして図に反映する。
+  const onEditConcept = (field: string, value: string) => {
+    const cur = (resultsRef.current.concept?.data as Partial<ConceptResult>) ?? {};
+    const data = { ...cur, [field]: value };
+    const owner = CONCEPT_ELEMENTS.find((e) => e.fields.includes(field as keyof ConceptResult))?.key;
+    const confirmed = owner && !conceptConfirmed.includes(owner) ? [...conceptConfirmed, owner] : conceptConfirmed;
+    persist({ ...resultsRef.current, concept: { data, review: null, attempts: 0, confirmedElements: confirmed } });
+  };
+
+  // VDS図セルの手動編集（後続ブロック）。
+  const onEditBlock = (block: "strategy" | "sustainability" | "revenue", field: string, value: string) => {
+    const prevRes = resultsRef.current[block];
+    const cur = (prevRes?.data as Record<string, unknown>) ?? {};
+    const data = { ...cur, [field]: value };
+    persist({ ...resultsRef.current, [block]: { data, review: prevRes?.review ?? null, attempts: prevRes?.attempts ?? 0 } });
+  };
+
   const setPhase = (id: string, patch: Partial<BlockRuntime>) =>
     setRuntime((r) => {
       const base: BlockRuntime = r[id] ?? { phase: "idle", attempt: 0 };
@@ -121,7 +138,7 @@ export default function VdsTab({ projectContext, results, onPersist }: Props) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1280 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1600 }}>
       <div style={{ fontSize: 14, color: T.inkMuted, lineHeight: 1.7 }}>
         プロジェクトコンテキストを起点に、まず<b>コンセプト</b>を「顧客 → 課題 → 手法 → 価値」の順に提案します。各要素はあなたのフィードバックを反映して何度でも再検証でき、確定した内容が次の要素に引き継がれます。コンセプト確定後、後続のVDSブロックを生成できます。
       </div>
@@ -140,6 +157,8 @@ export default function VdsTab({ projectContext, results, onPersist }: Props) {
             strategy={resultsState.strategy?.data as Record<string, unknown> | undefined}
             sustainability={resultsState.sustainability?.data as Record<string, unknown> | undefined}
             revenue={resultsState.revenue?.data as Record<string, unknown> | undefined}
+            onEditConcept={onEditConcept}
+            onEditBlock={onEditBlock}
           />
         )}
       </div>
