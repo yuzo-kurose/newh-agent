@@ -4,15 +4,16 @@ import { Phase, T } from "../lib/constants";
 interface Props {
   phases: Phase[];
   activePhase: number;
-  activeView: "context" | "phase";
+  activeView: "context" | "phase" | "vds";
   onOpenContext: () => void;
+  onOpenVds: () => void;
   setActivePhase: (i: number) => void;
   completedTasks: Record<string, boolean>;
   collapsed: boolean;
   onToggleCollapse: () => void;
 }
 
-export default function Sidebar({ phases, activePhase, activeView, onOpenContext, setActivePhase, completedTasks, collapsed, onToggleCollapse }: Props) {
+export default function Sidebar({ phases, activePhase, activeView, onOpenContext, onOpenVds, setActivePhase, completedTasks, collapsed, onToggleCollapse }: Props) {
   return (
     <nav style={{ width:collapsed?52:210, background:T.white, borderRight:`1px solid ${T.border}`, flexShrink:0, display:"flex", flexDirection:"column", transition:"width 0.2s ease", overflowX:"hidden" }}>
       <button onClick={onToggleCollapse}
@@ -25,6 +26,11 @@ export default function Sidebar({ phases, activePhase, activeView, onOpenContext
           style={{ width:"100%", padding:collapsed?"12px 0":"11px 14px", background:activeView==="context"?T.offWhite:"transparent", border:"none", borderLeft:`3px solid ${activeView==="context"?T.ink:"transparent"}`, cursor:"pointer", textAlign:"left", display:"flex", flexDirection:collapsed?"column":"row", alignItems:collapsed?"center":"center", gap:collapsed?3:7, transition:"all 0.15s" }}>
           <span style={{ fontSize:12, color:activeView==="context"?T.ink:T.inkFaint }}>▣</span>
           {!collapsed && <span style={{ fontSize:11, color:activeView==="context"?T.ink:T.inkMuted, fontWeight:activeView==="context"?700:400 }}>プロジェクトコンテキスト</span>}
+        </button>
+        <button onClick={onOpenVds} title={collapsed ? "VDS設計" : ""}
+          style={{ width:"100%", padding:collapsed?"12px 0":"11px 14px", background:activeView==="vds"?T.offWhite:"transparent", border:"none", borderLeft:`3px solid ${activeView==="vds"?T.ink:"transparent"}`, cursor:"pointer", textAlign:"left", display:"flex", flexDirection:collapsed?"column":"row", alignItems:"center", gap:collapsed?3:7, transition:"all 0.15s" }}>
+          <span style={{ fontSize:12, color:activeView==="vds"?T.ink:T.inkFaint }}>◆</span>
+          {!collapsed && <span style={{ fontSize:11, color:activeView==="vds"?T.ink:T.inkMuted, fontWeight:activeView==="vds"?700:400 }}>VDS設計</span>}
         </button>
         {phases.map((p, i) => {
           const done = p.tasks.filter(t => completedTasks[`${p.id}-${t.id}`]).length;

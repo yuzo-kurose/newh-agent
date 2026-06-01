@@ -381,39 +381,252 @@ export function getTaskHypothesis(phaseId: string, taskId: string, generated: Ta
 }
 
 // ============================================================
+// CONCEPT (VDSブロック1) — リッチ出力スキーマ
+// ============================================================
+// ターゲット顧客選定の9つの観点。テーブル表示の列定義にも使う。
+export const CONCEPT_VIEWPOINTS = [
+  { key: "quantitativeAppeal", label: "量的魅力" },
+  { key: "urgency", label: "課題逼迫性" },
+  { key: "craving", label: "解決策渇望度" },
+  { key: "advantageDifficulty", label: "優位性構築難易度" },
+  { key: "requirementDifficulty", label: "要求実現難易度" },
+  { key: "payment", label: "支払い許容額" },
+  { key: "reachability", label: "到達可能性" },
+  { key: "decisionLeadTime", label: "意思決定リードタイム" },
+  { key: "marketImpact", label: "市場浸透インパクト" },
+] as const;
+
+export type ConceptViewpointKey = (typeof CONCEPT_VIEWPOINTS)[number]["key"];
+
+export interface ConceptScore {
+  score: number; // 1〜5
+  comment: string;
+}
+
+// 問題の質を左右する4要素
+export const PROBLEM_QUALITY_FACTORS = [
+  { key: "volume", label: "量" },
+  { key: "urgency", label: "逼迫性" },
+  { key: "timeliness", label: "時流性" },
+  { key: "significance", label: "意義性" },
+] as const;
+export type ProblemQualityKey = (typeof PROBLEM_QUALITY_FACTORS)[number]["key"];
+
+// 課題の質を左右する4要素
+export const ISSUE_QUALITY_FACTORS = [
+  { key: "volume", label: "量" },
+  { key: "essence", label: "本質度" },
+  { key: "solvability", label: "解決可能性" },
+  { key: "timeliness", label: "時流性" },
+] as const;
+export type IssueQualityKey = (typeof ISSUE_QUALITY_FACTORS)[number]["key"];
+
+export interface TargetSegment {
+  name: string;
+  axis: string; // 発散軸（業界/規模/価値観 等）
+  scores: Record<ConceptViewpointKey, ConceptScore>;
+}
+
+export interface GrowthStoryPhase {
+  phase: string; // 事業フェーズ（基盤構築/スケール/利益回収 等）
+  kgi: string;
+  focus: string;
+  businessModel: string;
+  asset: string;
+}
+
+// 価値や手法が描けていない場合に発想を広げる10の着眼点。
+export const IDEATION_LENSES = [
+  { no: 1, label: "良い点を伸ばす", approach: "課題が持つポジティブ面を伸ばす" },
+  { no: 2, label: "悪い面をなくす", approach: "課題が持つネガティブ面を消す" },
+  { no: 3, label: "反対にできそうな点を探す", approach: "課題のネガティブ面をポジティブに変える" },
+  { no: 4, label: "前提を疑う", approach: "課題が持つ前提条件をひっくり返す" },
+  { no: 5, label: "形容詞を変える", approach: "課題に関連する性質・状態を変化させる" },
+  { no: 6, label: "別のリソースを活用する", approach: "課題に関連する他の使用可能な資源（モノ・人）に着目する" },
+  { no: 7, label: "ニーズや文脈から発展させる", approach: "課題に関連する事象から発想をジャンプさせる" },
+  { no: 8, label: "課題の主体を変える", approach: "課題の所有者以外を巻き込む" },
+  { no: 9, label: "現状を変更する", approach: "現状の課題をそのまま解決する" },
+  { no: 10, label: "課題を切り分ける", approach: "課題を複数の話題に切り分けて考える" },
+] as const;
+
+// エージェントが着眼点をもとに出す、手法・価値のアイデア案。
+export interface MethodValueIdea {
+  lens: string; // 着眼点
+  hmw: string; // 「どうすれば〜できるか」の問い
+  idea: string; // 手法・価値の案
+}
+
+export interface ConceptResult {
+  oneLineConcept: string; // 「誰」の「課題」を「手法」によって「価値」にする の一文
+  customer: string;
+  problem: string; // 向き合う「問題」（解決が望まれる状態）
+  pain: string; // 据える「課題」（問題の背景要因のうち向き合うもの）
+  method: string; // 手法（抽象）：顧客に何を提供するか＝ソリューション群
+  methodFunctions: string[]; // 手法の具体＝機能
+  value: string; // 価値（抽象）：顧客が何を得るか＝成果や状態
+  valueExperiences: string[]; // 価値の具体＝体験
+  ideaApproaches: MethodValueIdea[]; // 10着眼点から発想した手法・価値の案
+  n1Customer: string; // ミクロの確信：実在する1人
+  marketSize: string; // マクロの確証：市場サイズ感
+  problemQuality: Record<ProblemQualityKey, ConceptScore>; // 問題の質（量/逼迫性/時流性/意義性）
+  issueQuality: Record<IssueQualityKey, ConceptScore>; // 課題の質（量/本質度/解決可能性/時流性）
+  structureMethod: string; // 採用した構造化手法（イシューマップ/ロジックツリー/ユーザージャーニーマップ）
+  structureReason: string; // その手法を選んだ理由
+  targetSegments: TargetSegment[];
+  primaryViewpoints: string[]; // 初期重要観点（優先した9観点）
+  growthStory: GrowthStoryPhase[];
+}
+
+// ============================================================
 // AGENT PROMPTS
 // ============================================================
 const AGENT_BASE = `あなたはNEWhのシニアビジネスデザイナーです。JSONのみを返してください。前置き・説明・Markdownコードブロック不要。`;
 
+// NEWh流の問いの立て方：各ブロックを生成する前に内省すべき思考プロセス。
+// 思考の過程そのものは出力せず、問いを通り抜けた「結論」だけをJSONに書く。
+const NEWH_THINKING = `
+【思考プロセス｜出力前に必ず内省すること】
+各フィールドを書く前に、以下のNEWh流の問いを自分に投げ、その答えだけをJSONに反映する。問いや思考過程は出力に含めない。
+共通の問い:
+- これは「従来気づかれなかった新しい問い」か、それとも既存課題・競合の焼き直しか？焼き直しなら切り口を変える。
+- 記述は具体か（業界・顧客・数字・固有名・状況に紐づくか）、それとも誰にでも当てはまる一般論か？一般論なら捨てて書き直す。
+- VDSの3条件「選ばれる／稼げる／続けられる」のどれに効く一手かを説明できるか？
+- 入力（クライアント依頼・前ブロック）の事実と矛盾していないか？`;
+
+// ブロックごとに深掘りすべき固有の問い。
+const BLOCK_THINKING: Record<string, string> = {
+  concept: `
+このブロック固有の思考プロセス（コンセプトを書く）:
+コンセプトは「誰（顧客）」「課題」「手法」「価値」の4要素で構成される。
+言語化のゴールは『「誰」の「課題」を「手法」によって「価値」という状態にする』という一文で表すこと。
+そして、1人の顧客を熱狂させ渇望させる「ミクロの確信」と、一定サイズの顧客に求められ広がりが見込める「マクロの確証」を必ず両立させること。
+
+絶対に避けるバッドケース:
+- ミクロ熱中型：目の前に渇望する顧客が実在することだけを拠り所にし、サイズ・量の観点が欠ける。意思決定者に「顧客はいるが事業として大きくなるのか」という懸念を生む。
+- マクロ依存型：定量・サイズ・ポテンシャルだけを拠り所にし、実在顧客の手触りが欠ける。意思決定者に「机上では市場がありそうだが本当に顧客は実在し、本当に買われるのか」という疑惑を生む。
+→ customer / value は、この両方の視座が同居するように書く。
+
+顧客は3階層で捉える:
+- 市場（人数ベース）：マクロの確証。顧客群として小さすぎないか・将来性があるか。
+- ターゲット顧客（顧客群・ペルソナ）：マクロの確証。
+- n1顧客（実在する1人）：ミクロの確信。探索・定義・言語化して手触りを得る対象。
+
+ターゲット顧客選定の9つの観点（各候補を評価する物差し）:
+1.量的魅力（人数・社数の大きさ／今後の伸び） 2.課題逼迫性 3.解決策渇望度 4.優位性構築難易度 5.要求実現難易度 6.支払い許容額 7.到達可能性 8.意思決定リードタイム 9.市場浸透インパクト
+
+ターゲット顧客選定の5ステップ（この順で内省してからcustomerを書く）:
+1.顧客群の発散（BtoB:業界/業種/企業規模、BtoC:年代/価値観/地域 等の軸で広げる）
+2.特性情報の付与（各候補を9観点で評価し、顧客セグメントを整理）
+3.成長ストーリー検討（事業フェーズ／フェーズKGI／重点観点／ビジネスモデル／得られるアセット。時間軸で基盤構築→スケール→利益回収など）
+4.初期重要観点検討（企業内与件＝3年以内黒字化等の前提、固有特性与件＝業界/競争環境/事業特性 を踏まえ、9観点に優先順位をつける）
+5.ターゲットを定義（上記を踏まえて向き合うべき顧客を見定める）
+
+課題（問題と課題）の見出し方:
+まず「問題」と「課題」を分けて捉える。問題＝解決が望まれている状態。課題＝その問題の背景に潜む要因のうち、自分たちが向き合うと据えるもの。問題の背景要因を洗い出し関係性を構造化することで課題を見出す。
+
+問題の質を左右する4要素（problemに反映し、problemQualityで評価）:
+- 量：多くの人・企業にとって解決が望まれているか
+- 逼迫性：お金を払ってでも解決したいか（問題自体の強度）
+- 時流性：今・これから向き合うべき適切なタイミングか
+- 意義性：自社・自身が向き合うべき問題か
+
+課題の質を左右する4要素（painに反映し、issueQualityで評価）:
+- 量：要因として多くの人・企業に共通する課題か
+- 本質度：その課題を解くと問題解決につながるか／大きな影響を与えられるか
+- 解決可能性：解決可能な課題か
+- 時流性：今・これから向き合うべきか（技術浸透で解けるようになった等）
+
+構造化手法は問題の性質で選ぶ（structureMethod/structureReasonに反映）:
+- イシューマップ：背景要因をツリーで網羅的に分解。網羅的探索に強いが、因果・順序・関係性は扱いづらい（多様な要因が絡む社会課題とは相性が悪い）。
+- ロジックツリー：行動・プロセスの順序に着目。作業/プロセス起点の探索に強いが、複雑な関係性・ループは扱いづらい。
+- ユーザージャーニーマップ：要因間の関係性・因果・ループを扱う。複雑性の高い問題に有効だが、網羅性・時間軸は弱い。
+
+あるべき捉え方：n1（顧客）の生の声・行動に触れて確信を得つつ、量・サイズから確証を得る（ミクロ×マクロ）。
+
+課題探索の4ステップ（この順で内省してからproblem/painを書く）:
+1.向き合うべき問題を定める（量・逼迫性・時流性・意義性で選ぶ）。問い：どの問題と向き合うべきか
+2.問題の背景・要因を構造的に洗い出し、向き合うものを課題として定義する。問い：なぜその問題は起きているのか、何を課題に据えるべきか
+3.問題と課題の個別具体性を高め、エピソードの粒度で捕捉して確信を得る。問い：具体的にはどのような問題と課題なのか
+4.エピソードから個別具体性を排除し一般性を高め、量と確信を紡ぐ。問い：つまり我々が向き合う問題と課題は何か
+
+手法と価値の描き方:
+- 手法＝課題解決および価値を作り上げるためのソリューション群。問い：顧客に何を提供するのか。
+- 価値＝手法を通じて顧客が得る成果や状態。問い：顧客は何を得るのか。
+- 2層で捉える。抽象＝手法・価値、具体＝機能・体験。手法の具体が機能（methodFunctions）、価値の具体が体験（valueExperiences）。抽象と具体が一貫しているか確認する。
+
+価値や手法が描けていないときは、以下の10の着眼点で「どうすれば〜できるか（HMW）」を立て、案を出す（ideaApproachesに、効きそうな着眼点を2〜4件選んで反映）:
+1.良い点を伸ばす（課題のポジティブ面を伸ばす）
+2.悪い面をなくす（ネガティブ面を消す）
+3.反対にできそうな点を探す（ネガティブ面をポジティブに変える）
+4.前提を疑う（前提条件をひっくり返す）
+5.形容詞を変える（関連する性質・状態を変化させる）
+6.別のリソースを活用する（他の使える資源＝モノ・人に着目）
+7.ニーズや文脈から発展させる（関連事象から発想をジャンプ）
+8.課題の主体を変える（所有者以外を巻き込む）
+9.現状を変更する（現状の課題をそのまま解決）
+10.課題を切り分ける（複数の話題に分けて考える）
+
+出力の指針:
+- customer：n1の実在顧客像（ミクロ）と、その背後にある顧客群・市場サイズ感（マクロ）の両方を含める。優先した9観点の根拠が滲むように書く。
+- problem：向き合うと定めた問題。ステップ4で一般化した、量と確信を両立した一文。problemQualityの4要素で評価する。
+- pain：problemの背景要因のうち据える課題。本質度（解くと問題解決につながるか）と解決可能性まで踏み込む。issueQualityの4要素で評価する。
+- structureMethod/structureReason：課題を見出すのに使った構造化手法と、その問題に合う理由。
+- method／methodFunctions：顧客に提供するソリューション（抽象）と、その具体である機能。
+- value／valueExperiences：顧客が得る成果・状態（抽象。before→afterで渇望される状態）と、その具体である体験。
+- ideaApproaches：10の着眼点から、この課題に効きそうなものを選び、HMWの問いと手法・価値の案をセットで出す。`,
+  strategy: `
+このブロック固有の問い:
+- 市場の規模・特性・成長性を、希望的観測でなくマクロ視点の根拠とともに語れているか？
+- 直接競合だけでなく「顧客が今使っている代替手段（自前運用・Excel・何もしない等）」まで競合に含めたか？
+- 「なぜ他社ではなく自社がやるべきか」に必然性があるか？単なる強みの列挙で終わっていないか？
+- 仕組み（オペレーション・体制・パートナー）はブロック1のコンセプトと整合しているか？`,
+  sustainability: `
+このブロック固有の問い:
+- 蓄積される資産は、競合が時間や資金をかけても容易に真似できない固有のものか？
+- 蓄積→強化→還元の因果ループは、机上でなく実際に回るか？どこが一番弱いか？
+- 続けるほど強くなる構造になっているか？それともいつか頭打ちになる一過性の優位か？`,
+  revenue: `
+このブロック固有の問い:
+- フロー型かストック型か明確か？誰の・どんな価値に対して課金するのかを言い切れているか？
+- ユニットエコノミクスは成立するか？黒字化の前提（顧客数・単価・継続率）は現実的か？
+- 主要コストの最大項目は何か？それが事業の足かせ・参入障壁のどちらに働くか？`,
+  project: `
+このブロック固有の問い:
+- ゴールは決裁者が一読で腹落ちする1文か？抽象的なスローガンになっていないか？
+- 3条件（選ばれる・稼げる・続けられる）の根拠は、VDS全体と整合しているか？
+- 最大のリスクは何で、firstActionsの一手はそのリスクを最も早く潰せるか？
+- どのフェーズから始めれば不確実性を最速で減らせるか——startingPhaseの選択に根拠があるか？`,
+};
+
 export const AGENTS: Record<string, AgentDef> = {
   concept: {
     label: "ブロック1：コンセプト", icon: "👤", color: T.blue,
-    reviewCriteria: "・顧客セグメントが具体的か（業種・規模・役職等）\n・困りごとが構造的に深掘りされているか\n・提供価値がbefore→afterで渇望感を持って表現されているか\n・手法・体験が価値と整合しているか",
-    system: AGENT_BASE + `\nVDSブロック1「コンセプト（ミクロ視点）」を生成。JSONのみ：\n{"customer":"顧客（具体的セグメント）","pain":"困りごと（構造的に深掘り）","value":"提供価値（before→after）","method":"手法・体験"}`,
+    reviewCriteria: "・ミクロの確信（n1の実在顧客が渇望する手触り）とマクロの確証（顧客群・市場サイズ・将来性）が両立しているか\n・ミクロ熱中型／マクロ依存型のどちらにも偏っていないか\n・顧客が3階層（市場／ターゲット顧客群／n1顧客）で捉えられ、9観点の選定根拠が滲むか\n・問題（量/逼迫性/時流性/意義性）と課題（量/本質度/解決可能性/時流性）が分けて捉えられ、課題が問題の背景要因として構造的に導かれているか\n・課題が本質度（解くと問題解決につながる）と解決可能性を満たすか\n・提供価値がbefore→afterで渇望感を持って表現され、手法・体験が価値と整合しているか",
+    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.concept + `\nVDSブロック1「コンセプト」を生成。前述の課題探索4ステップ・顧客選定5ステップ・9観点を内省した結果をJSONで返す。JSONのみ：\n{"oneLineConcept":"『誰の課題を手法によって価値という状態にする』を表す一文","customer":"顧客（n1の実在像＋背後の顧客群・市場サイズ感を両立）","problem":"向き合う問題（量と確信を両立した一文）","pain":"据える課題（本質度・解決可能性まで踏み込む）","method":"手法（抽象：顧客に何を提供するか）","methodFunctions":["機能（手法の具体）"],"value":"価値（抽象：顧客が何を得るか・before→after）","valueExperiences":["体験（価値の具体）"],"ideaApproaches":[{"lens":"着眼点（例：悪い面をなくす）","hmw":"どうすれば〜できるか","idea":"手法・価値の案"}],"n1Customer":"n1の実在顧客像（1人の手触り）","marketSize":"市場サイズ感（マクロの確証）","problemQuality":{"volume":{"score":3,"comment":"一言"},"urgency":{"score":3,"comment":"一言"},"timeliness":{"score":3,"comment":"一言"},"significance":{"score":3,"comment":"一言"}},"issueQuality":{"volume":{"score":3,"comment":"一言"},"essence":{"score":3,"comment":"一言"},"solvability":{"score":3,"comment":"一言"},"timeliness":{"score":3,"comment":"一言"}},"structureMethod":"イシューマップ|ロジックツリー|ユーザージャーニーマップ","structureReason":"その問題に合う理由","targetSegments":[{"name":"セグメント名","axis":"発散軸（業界/規模/価値観等）","scores":{"quantitativeAppeal":{"score":3,"comment":"一言"},"urgency":{"score":3,"comment":"一言"},"craving":{"score":3,"comment":"一言"},"advantageDifficulty":{"score":3,"comment":"一言"},"requirementDifficulty":{"score":3,"comment":"一言"},"payment":{"score":3,"comment":"一言"},"reachability":{"score":3,"comment":"一言"},"decisionLeadTime":{"score":3,"comment":"一言"},"marketImpact":{"score":3,"comment":"一言"}}}],"primaryViewpoints":["初期に優先する観点とその理由"],"growthStory":[{"phase":"事業フェーズ","kgi":"フェーズKGI","focus":"重点観点","businessModel":"ビジネスモデル","asset":"得られるアセット"}]}\ntargetSegmentsは2〜3件、growthStoryは2〜3フェーズ、methodFunctions/valueExperiencesは2〜4件、ideaApproachesは2〜4件。scoreは1〜5の整数（5が最も強い/望ましい）。commentは20字以内。`,
     build: (brief) => `クライアント依頼：\n${brief}`,
   },
   strategy: {
     label: "ブロック2：戦略と仕組み", icon: "⚔", color: T.orange,
     reviewCriteria: "・市場規模・成長性がマクロ視点で語られているか\n・直接競合＋代替手段まで競合として捉えているか\n・「なぜ他社でなく自社か」を答えているか\n・仕組みがコンセプトと整合しているか",
-    system: AGENT_BASE + `\nVDSブロック2「戦略と仕組み（マクロ視点）」を生成。JSONのみ：\n{"market":"市場（規模・特性・成長性）","competitor":"競合（直接競合＋代替手段）","advantage":"戦略・優位性（なぜ自社か）","mechanism":"仕組み（オペレーション・体制・パートナー）"}`,
+    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.strategy + `\nVDSブロック2「戦略と仕組み（マクロ視点）」を生成。JSONのみ：\n{"market":"市場（規模・特性・成長性）","competitor":"競合（直接競合＋代替手段）","advantage":"戦略・優位性（なぜ自社か）","mechanism":"仕組み（オペレーション・体制・パートナー）"}`,
     build: (brief, prev) => `クライアント依頼：\n${brief}\n\nブロック1:\n${JSON.stringify(prev.concept, null, 2)}`,
   },
   sustainability: {
     label: "ブロック3：持続戦略", icon: "∞", color: T.green,
     reviewCriteria: "・強みとなる資産が競合が真似できない固有のものか\n・蓄積されるものが実際に積み上がるものか\n・強化ループの因果が明確か\n・続けるほど強くなる構造になっているか",
-    system: AGENT_BASE + `\nVDSブロック3「持続戦略」を生成。JSONのみ：\n{"assets":"強みとなる資産（競合が真似できない固有資産）","accumulation":"蓄積されるもの（データ・関係性・ノウハウ）","loop":"強化ループ（蓄積→強化→還元の因果）"}`,
+    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.sustainability + `\nVDSブロック3「持続戦略」を生成。JSONのみ：\n{"assets":"強みとなる資産（競合が真似できない固有資産）","accumulation":"蓄積されるもの（データ・関係性・ノウハウ）","loop":"強化ループ（蓄積→強化→還元の因果）"}`,
     build: (brief, prev) => `クライアント依頼：\n${brief}\n\nブロック1:\n${JSON.stringify(prev.concept)}\nブロック2:\n${JSON.stringify(prev.strategy)}`,
   },
   revenue: {
     label: "ブロック4：収支モデル", icon: "¥", color: T.purple,
     reviewCriteria: "・フロー型かストック型か明記されているか\n・誰から何に対して課金するかが明確か\n・主要コスト項目が具体的か\n・黒字化の時期・UEの仮説があるか",
-    system: AGENT_BASE + `\nVDSブロック4「収支モデル」を生成。JSONのみ：\n{"revenueStructure":"収益構造（フロー/ストック・課金設計）","costStructure":"コスト（固定費・変動費の主要項目）","balanceOutlook":"収支見立て（黒字化・UE仮説）"}`,
+    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.revenue + `\nVDSブロック4「収支モデル」を生成。JSONのみ：\n{"revenueStructure":"収益構造（フロー/ストック・課金設計）","costStructure":"コスト（固定費・変動費の主要項目）","balanceOutlook":"収支見立て（黒字化・UE仮説）"}`,
     build: (brief, prev) => `クライアント依頼：\n${brief}\n\nブロック1:\n${JSON.stringify(prev.concept)}\nブロック2:\n${JSON.stringify(prev.strategy)}\nブロック3:\n${JSON.stringify(prev.sustainability)}`,
   },
   project: {
     label: "プロジェクト設計", icon: "◈", color: T.red,
     reviewCriteria: "・ゴールが決裁者が腹落ちできる1文か\n・スコープが明確で認識齟齬を防げるか\n・チーム構成がVDSを実現するのに適切か\n・3条件（選ばれる・稼げる・続けられる）の根拠がVDS全体と整合しているか",
-    system: AGENT_BASE + `\nNEWhのプロジェクトデザイン案を生成。startingPhaseはsetup/future/research/concept/business/validation/decision/growthのいずれか。JSONのみ：\n{"projectName":"名前（20字以内）","summary":"概要（2〜3文）","goal":"ゴール（1文）","startingPhase":"ID","startingPhaseReason":"理由（1〜2文）","scope":["項目"],"outOfScope":["項目"],"team":[{"role":"","count":1,"responsibility":""}],"stakeholders":[{"type":"決裁者|推進者|協力者|注意人物","name":"","action":""}],"phaseRoadmap":[{"phaseId":"","duration":"","keyOutput":"","priority":"high|medium|low"}],"keyRisks":[{"risk":"","mitigation":""}],"firstActions":[""],"threeConditions":{"selected":"","profitable":"","sustainable":""}}`,
+    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.project + `\nNEWhのプロジェクトデザイン案を生成。startingPhaseはsetup/future/research/concept/business/validation/decision/growthのいずれか。JSONのみ：\n{"projectName":"名前（20字以内）","summary":"概要（2〜3文）","goal":"ゴール（1文）","startingPhase":"ID","startingPhaseReason":"理由（1〜2文）","scope":["項目"],"outOfScope":["項目"],"team":[{"role":"","count":1,"responsibility":""}],"stakeholders":[{"type":"決裁者|推進者|協力者|注意人物","name":"","action":""}],"phaseRoadmap":[{"phaseId":"","duration":"","keyOutput":"","priority":"high|medium|low"}],"keyRisks":[{"risk":"","mitigation":""}],"firstActions":[""],"threeConditions":{"selected":"","profitable":"","sustainable":""}}`,
     build: (brief, prev) => `クライアント依頼：\n${brief}\n\nVDS全体：\n${JSON.stringify(prev, null, 2)}`,
   },
 };

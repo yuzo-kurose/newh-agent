@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Phase, T, TaskHypothesisMap } from "../lib/constants";
+import { callStreamingJSON } from "../lib/generate";
 
 interface FollowupQuestion {
   id: string;
@@ -20,55 +21,6 @@ interface Props {
   projectContext: string;
   onApply: (hypotheses: TaskHypothesisMap, brief: string) => void;
   onClose: () => void;
-}
-
-async function callStreamingJSON<T>(
-  system: string,
-  userContent: string,
-  onDelta: (text: string) => void,
-  maxTokens = 3000
-): Promise<T> {
-  const res = await fetch("/api/agent", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ system, userContent, maxTokens, responseFormat: "json", stream: true }),
-  });
-  if (!res.ok || !res.body) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data?.error || "ストリーミング接続に失敗しました。");
-  }
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let finalValue: T | null = null;
-
-  const handleEvent = (chunk: string) => {
-    const eventLine = chunk.split("\n").find((line) => line.startsWith("event: "));
-    const dataLine = chunk.split("\n").find((line) => line.startsWith("data: "));
-    if (!eventLine || !dataLine) return;
-
-    const event = eventLine.slice("event: ".length).trim();
-    const data = JSON.parse(dataLine.slice("data: ".length));
-    if (event === "delta") onDelta(data.text || "");
-    if (event === "error") throw new Error(data.error || "生成に失敗しました。");
-    if (event === "final") finalValue = data.json as T;
-  };
-
-  while (true) {
-    const { done, value } = await reader.read();
-    buffer += decoder.decode(value, { stream: !done });
-    const events = buffer.split("\n\n");
-    buffer = events.pop() ?? "";
-    for (const eventChunk of events) {
-      if (eventChunk.trim()) handleEvent(eventChunk);
-    }
-    if (done) break;
-  }
-
-  if (buffer.trim()) handleEvent(buffer);
-  if (!finalValue) throw new Error("生成結果を取得できませんでした。");
-  return finalValue;
 }
 
 const Card = ({ children, style = {} }: { children: React.ReactNode; style?: React.CSSProperties }) => (

@@ -9,11 +9,13 @@ import ChecksTab from "./components/ChecksTab";
 import ChatTab from "./components/ChatTab";
 import GeneratorModal from "./components/GeneratorModal";
 import ProjectContextTab from "./components/ProjectContextTab";
+import VdsTab, { VdsResults } from "./components/VdsTab";
 
 const COMPLETED_TASKS_STORAGE_KEY = "newh-agent.completedTasks";
 const TASK_HYPOTHESES_STORAGE_KEY = "newh-agent.taskHypotheses";
 const TASK_SLIDES_STORAGE_KEY = "newh-agent.taskSlides";
 const PROJECT_CONTEXT_STORAGE_KEY = "newh-agent.projectContext";
+const VDS_RESULTS_STORAGE_KEY = "newh-agent.vdsResults";
 
 function loadCompletedTasks(): Record<string, boolean> {
   if (typeof window === "undefined") return {};
@@ -56,12 +58,25 @@ function loadTaskSlides(): TaskSlideMap {
   }
 }
 
+function loadVdsResults(): VdsResults {
+  if (typeof window === "undefined") return {};
+  try {
+    const stored = window.localStorage.getItem(VDS_RESULTS_STORAGE_KEY);
+    if (!stored) return {};
+    const parsed = JSON.parse(stored);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function NEWhAgent() {
   const [activePhase, setActivePhase] = useState(0);
-  const [activeView, setActiveView] = useState<"context" | "phase">("phase");
+  const [activeView, setActiveView] = useState<"context" | "phase" | "vds">("phase");
   const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>(loadCompletedTasks);
   const [generatedHypotheses, setGeneratedHypotheses] = useState<TaskHypothesisMap>(loadTaskHypotheses);
   const [taskSlides, setTaskSlides] = useState<TaskSlideMap>(loadTaskSlides);
+  const [vdsResults, setVdsResults] = useState<VdsResults>(loadVdsResults);
   const [projectContext, setProjectContextState] = useState(loadProjectContext);
   const [activeTab, setActiveTab] = useState<"tasks" | "checks" | "chat">("tasks");
   const [showGenerator, setShowGenerator] = useState(false);
@@ -116,6 +131,11 @@ export default function NEWhAgent() {
     window.localStorage.setItem(TASK_SLIDES_STORAGE_KEY, JSON.stringify(nextSlides));
   };
 
+  const persistVdsResults = (results: VdsResults) => {
+    setVdsResults(results);
+    window.localStorage.setItem(VDS_RESULTS_STORAGE_KEY, JSON.stringify(results));
+  };
+
   return (
     <div style={{ fontFamily:"'Helvetica Neue',Helvetica,'Hiragino Sans','Noto Sans JP',sans-serif", background:T.offWhite, minHeight:"100vh", color:T.ink, display:"flex", flexDirection:"column" }}>
       {showGenerator && <GeneratorModal phase={phase} projectContext={projectContext} onApply={applyHypotheses} onClose={() => setShowGenerator(false)} />}
@@ -130,7 +150,7 @@ export default function NEWhAgent() {
       </header>
 
       <div style={{ display:"flex", flex:1, overflow:"hidden", height:"calc(100vh - 57px)" }}>
-        <Sidebar phases={PHASES} activePhase={activePhase} activeView={activeView} onOpenContext={() => setActiveView("context")} setActivePhase={setActivePhaseAndView} completedTasks={completedTasks} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(p => !p)} />
+        <Sidebar phases={PHASES} activePhase={activePhase} activeView={activeView} onOpenContext={() => setActiveView("context")} onOpenVds={() => setActiveView("vds")} setActivePhase={setActivePhaseAndView} completedTasks={completedTasks} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(p => !p)} />
 
         <main style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
           {activeView==="phase" ? (
@@ -140,8 +160,12 @@ export default function NEWhAgent() {
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                 <div style={{ width:4, height:20, background:T.ink, borderRadius:2 }} />
                 <div>
-                  <div style={{ fontSize:15, fontWeight:800, color:T.ink, letterSpacing:"-0.02em" }}>プロジェクトコンテキスト</div>
-                  <div style={{ fontSize:11, color:T.inkMuted, marginTop:1 }}>仮説生成時に読み込む案件情報を蓄積する。</div>
+                  <div style={{ fontSize:15, fontWeight:800, color:T.ink, letterSpacing:"-0.02em" }}>
+                    {activeView==="vds" ? "VDS設計" : "プロジェクトコンテキスト"}
+                  </div>
+                  <div style={{ fontSize:11, color:T.inkMuted, marginTop:1 }}>
+                    {activeView==="vds" ? "VDSの各ブロックを生成→レビュー→リトライで作成する。" : "仮説生成時に読み込む案件情報を蓄積する。"}
+                  </div>
                 </div>
               </div>
             </div>
@@ -164,6 +188,7 @@ export default function NEWhAgent() {
 
           <div style={{ flex:1, overflowY:"auto", padding:"20px" }}>
             {activeView==="context" && <ProjectContextTab context={projectContext} setContext={setProjectContext} />}
+            {activeView==="vds" && <VdsTab projectContext={projectContext} results={vdsResults} onPersist={persistVdsResults} />}
             {activeView==="phase" && activeTab==="tasks" && <TasksTab phase={phase} completedTasks={completedTasks} generatedHypotheses={generatedHypotheses} taskSlides={taskSlides} projectContext={projectContext} toggleTask={toggleTask} updateHypothesis={updateHypothesis} updateTaskSlide={updateTaskSlide} />}
             {activeView==="phase" && activeTab==="checks" && <ChecksTab phase={phase} onOpenChat={() => setActiveTab("chat")} />}
             {activeView==="phase" && activeTab==="chat" && <ChatTab phase={phase} />}
