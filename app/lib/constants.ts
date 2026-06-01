@@ -631,6 +631,64 @@ export const AGENTS: Record<string, AgentDef> = {
   },
 };
 
+// ============================================================
+// CONCEPT ELEMENTS — 要素単位（顧客→課題→手法→価値）の対話生成
+// ============================================================
+export type ConceptElementKey = "customer" | "issue" | "method" | "value";
+
+export interface ConceptElementDef {
+  key: ConceptElementKey;
+  label: string;
+  hint: string; // この要素で答える問い
+  fields: (keyof ConceptResult)[]; // この要素が担うConceptResultのフィールド
+  system: string;
+  maxTokens: number;
+}
+
+// 要素別の指示＋出力スキーマを、コンセプトの思考プロセス全体に重ねる。
+const conceptElementSystem = (instruction: string, schema: string) =>
+  AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.concept +
+  `\n\n【今回のステップ】${instruction}\n確定済みの他要素は尊重し整合させる。ユーザーの意見・修正指示があれば最優先で反映する。以下のフィールドのみをJSONで返す：\n${schema}`;
+
+export const CONCEPT_ELEMENTS: ConceptElementDef[] = [
+  {
+    key: "customer", label: "顧客", hint: "誰に向き合うか",
+    fields: ["customer", "n1Customer", "marketSize", "targetSegments", "primaryViewpoints", "growthStory"],
+    maxTokens: 4500,
+    system: conceptElementSystem(
+      "『誰（顧客）』だけを検討する。顧客3階層（市場/ターゲット顧客群/n1）、選定9観点、選定5ステップ、成長ストーリーを反映し、ミクロの確信とマクロの確証を両立させる。",
+      `{"customer":"顧客（n1の実在像＋背後の顧客群・市場サイズ感を両立）","n1Customer":"n1の実在顧客像（1人の手触り）","marketSize":"市場サイズ感（マクロの確証）","targetSegments":[{"name":"セグメント名","axis":"発散軸（業界/規模/価値観等）","scores":{"quantitativeAppeal":{"score":3,"comment":"一言"},"urgency":{"score":3,"comment":"一言"},"craving":{"score":3,"comment":"一言"},"advantageDifficulty":{"score":3,"comment":"一言"},"requirementDifficulty":{"score":3,"comment":"一言"},"payment":{"score":3,"comment":"一言"},"reachability":{"score":3,"comment":"一言"},"decisionLeadTime":{"score":3,"comment":"一言"},"marketImpact":{"score":3,"comment":"一言"}}}],"primaryViewpoints":["初期に優先する観点とその理由"],"growthStory":[{"phase":"事業フェーズ","kgi":"フェーズKGI","focus":"重点観点","businessModel":"ビジネスモデル","asset":"得られるアセット"}]}\ntargetSegmentsは2〜3件、growthStoryは2〜3フェーズ、scoreは1〜5の整数、commentは20字以内。`
+    ),
+  },
+  {
+    key: "issue", label: "課題", hint: "なぜ起きるのか・何を課題に据えるか",
+    fields: ["problem", "pain", "problemQuality", "issueQuality", "structureMethod", "structureReason"],
+    maxTokens: 2500,
+    system: conceptElementSystem(
+      "確定した顧客に対する『問題と課題』だけを検討する。問題と課題を分け、問題の質4要素・課題の質4要素で評価し、適切な構造化手法で課題を導く。課題探索4ステップを踏む。",
+      `{"problem":"向き合う問題（量と確信を両立した一文）","pain":"据える課題（本質度・解決可能性まで踏み込む）","problemQuality":{"volume":{"score":3,"comment":"一言"},"urgency":{"score":3,"comment":"一言"},"timeliness":{"score":3,"comment":"一言"},"significance":{"score":3,"comment":"一言"}},"issueQuality":{"volume":{"score":3,"comment":"一言"},"essence":{"score":3,"comment":"一言"},"solvability":{"score":3,"comment":"一言"},"timeliness":{"score":3,"comment":"一言"}},"structureMethod":"イシューマップ|ロジックツリー|ユーザージャーニーマップ","structureReason":"その問題に合う理由"}\nscoreは1〜5の整数、commentは20字以内。`
+    ),
+  },
+  {
+    key: "method", label: "手法", hint: "顧客に何を提供するか",
+    fields: ["method", "methodFunctions", "ideaApproaches"],
+    maxTokens: 2500,
+    system: conceptElementSystem(
+      "確定した顧客・課題を解く『手法』だけを検討する。手法（抽象）と機能（具体）を分け、10の着眼点でHMWを立てて手法・価値の案（ideaApproaches）を出す。",
+      `{"method":"手法（抽象：顧客に何を提供するか）","methodFunctions":["機能（手法の具体）"],"ideaApproaches":[{"lens":"着眼点（例：悪い面をなくす）","hmw":"どうすれば〜できるか","idea":"手法・価値の案"}]}\nmethodFunctionsは2〜4件、ideaApproachesは2〜4件。`
+    ),
+  },
+  {
+    key: "value", label: "価値", hint: "顧客は何を得るか",
+    fields: ["value", "valueExperiences", "oneLineConcept"],
+    maxTokens: 2000,
+    system: conceptElementSystem(
+      "確定した顧客・課題・手法から、顧客が得る『価値』だけを検討する。価値（抽象）と体験（具体）を分け、before→afterで渇望される状態を描く。最後にコンセプト全体を『誰の課題を手法によって価値という状態にする』の一文（oneLineConcept）に凝縮する。",
+      `{"value":"価値（抽象：顧客が何を得るか・before→after）","valueExperiences":["体験（価値の具体）"],"oneLineConcept":"『誰の課題を手法によって価値という状態にする』を表す一文"}\nvalueExperiencesは2〜4件。`
+    ),
+  },
+];
+
 export const REVIEW_SYSTEM = `あなたはNEWhのプリンシパルビジネスデザイナーです。後輩が生成した事業構想の各ブロックをNEWhの基準で厳しくレビューしてください。
 表面的・抽象的・ありきたりな記述は容赦なく低評価にする。「具体性」「整合性」「NEWhらしい深さ」の3軸で評価する。
 JSONのみ返す：{"score":0〜100,"grade":"S|A|B|C|D","goodPoint":"良い点（1文）","issues":["問題点1","問題点2"],"mustFix":"最重要改善指示","passOrRetry":"pass|retry"}

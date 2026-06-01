@@ -1,4 +1,4 @@
-import { AGENTS, REVIEW_SYSTEM, ReviewResult } from "./constants";
+import { AGENTS, REVIEW_SYSTEM, ReviewResult, CONCEPT_ELEMENTS, ConceptElementKey } from "./constants";
 
 // SSEストリーミングでJSONを取得する共有ヘルパー。
 export async function callStreamingJSON<T>(
@@ -100,4 +100,29 @@ export async function runBlock(
 
   onPhase?.("done", attempt);
   return { data: lastData, review: lastReview, attempts: attempt };
+}
+
+// コンセプトの1要素（顧客/課題/手法/価値）を、確定済み要素・前回案・ユーザー意見を踏まえて生成/改善する。
+export async function runConceptElement(
+  elementKey: ConceptElementKey,
+  brief: string,
+  confirmed: Record<string, unknown>,
+  prevDraft: Record<string, unknown> | null,
+  feedback: string,
+  onDelta: (text: string) => void
+): Promise<Record<string, unknown>> {
+  const el = CONCEPT_ELEMENTS.find((e) => e.key === elementKey);
+  if (!el) throw new Error(`未知の要素: ${elementKey}`);
+
+  const confirmedText = Object.keys(confirmed).length ? JSON.stringify(confirmed, null, 2) : "なし（最初の要素）";
+  const prevText = prevDraft ? JSON.stringify(prevDraft, null, 2) : "なし（初回提案）";
+  const feedbackText = feedback.trim() ? feedback.trim() : "特になし。まず案を出す。";
+
+  const userContent =
+    `クライアント依頼：\n${brief}\n\n` +
+    `確定済みの要素（尊重して整合させる）：\n${confirmedText}\n\n` +
+    `この要素の前回提案：\n${prevText}\n\n` +
+    `ユーザーの意見・修正指示（最優先で反映）：\n${feedbackText}`;
+
+  return callStreamingJSON<Record<string, unknown>>(el.system, userContent, onDelta, el.maxTokens);
 }
