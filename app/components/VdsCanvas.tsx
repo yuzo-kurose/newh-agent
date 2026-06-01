@@ -20,8 +20,8 @@ const str = (o: Obj | Partial<ConceptResult>, key: string): string => {
   return typeof v === "string" ? v : "";
 };
 
-const CELL_H = 320; // 折りたたみ時の一定の高さ（約15行）
-const CLAMP_LINES = 15;
+const CELL_H = 200; // 折りたたみ時の一定の高さ（約9行）
+const CLAMP_LINES = 9;
 
 function Cell({ label, value, color, hint, onSave, fill }: { label: string; value: string; color: string; hint?: string; onSave?: (v: string) => void; fill?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -29,7 +29,7 @@ function Cell({ label, value, color, hint, onSave, fill }: { label: string; valu
   const [draft, setDraft] = useState(value);
   const filled = !!value.trim();
   const text = filled ? value : (hint || "未確定");
-  const long = filled && value.length > 220;
+  const long = filled && value.length > 130;
 
   const startEdit = () => { setDraft(value); setEditing(true); };
   const save = () => { onSave?.(draft); setEditing(false); setOpen(false); };
