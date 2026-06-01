@@ -34,6 +34,7 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
     CONCEPT_ELEMENTS.find((e) => !(initialConfirmed ?? []).includes(e.key))?.key ?? "customer"
   );
   const [feedback, setFeedback] = useState<Record<string, string>>({});
+  const [genBrief, setGenBrief] = useState<Record<string, string>>({}); // 各要素を最後に生成したときの案件ブリーフ
   const [history, setHistory] = useState<Record<string, Draft[]>>({});
   const [showHistory, setShowHistory] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -47,9 +48,13 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
   const hasDraft = Object.keys(currentSlice).length > 0;
   const iterations = history[selected]?.length ?? (hasDraft ? 1 : 0);
   const allConfirmed = confirmed.length === CONCEPT_ELEMENTS.length;
+  // ブリーフが空でも、既に案がある／確定済み要素があれば、フィードバックで再提案できる。
+  const canGenerate = !busy && (brief.trim().length > 0 || hasDraft || confirmed.length > 0);
+  // この要素を最後に生成したときから案件ブリーフが変わっているか。
+  const briefChanged = hasDraft && genBrief[selected] !== undefined && genBrief[selected] !== brief;
 
   const generate = async () => {
-    if (busy || !brief.trim()) return;
+    if (!canGenerate) return;
     setBusy(true);
     setStreamText("");
     setError(null);
@@ -67,6 +72,7 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
       const merged: Draft = { ...draftRef.current, ...(result as Draft) };
       setDraft(merged);
       setHistory((h) => ({ ...h, [selected]: [...(h[selected] ?? []), pick(merged, el.fields)] }));
+      setGenBrief((g) => ({ ...g, [selected]: brief }));
       onChange(merged, confirmed);
     } catch (e) {
       setError(e instanceof Error ? e.message : "生成に失敗しました。");
@@ -162,14 +168,25 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
           </div>
         )}
 
+        {/* 案件ブリーフが変更されたときの再提案 */}
+        {briefChanged && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: T.orangeLight, border: `1px solid ${T.orange}40`, borderRadius: 8, padding: "10px 12px" }}>
+            <span style={{ fontSize: 12.5, color: T.orange, fontWeight: 700 }}>案件ブリーフが変更されています。</span>
+            <button onClick={generate} disabled={busy}
+              style={{ marginLeft: "auto", padding: "8px 14px", background: busy ? T.paper : T.orange, border: "none", borderRadius: 8, color: busy ? T.inkFaint : T.white, fontSize: 13, fontWeight: 700, cursor: busy ? "not-allowed" : "pointer" }}>
+              🔄 変更した案件を反映して再提案
+            </button>
+          </div>
+        )}
+
         {/* フィードバック＆アクション */}
         <div style={{ borderTop: `1px solid ${T.borderLight}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
           <textarea value={feedback[selected] ?? ""} onChange={(e) => setFeedback((f) => ({ ...f, [selected]: e.target.value }))}
             placeholder={`この案へのフィードバック・修正指示（例：${el.key === "customer" ? "n1をもっと具体的に。20代の単身者に絞りたい" : el.key === "issue" ? "逼迫性が弱い。もっと切実な課題に" : el.key === "method" ? "もっと斬新な手法を。前提を疑う案も" : "価値が抽象的。得られる状態を具体的に"}）`}
             style={{ width: "100%", minHeight: 56, padding: "9px 11px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 14.5, lineHeight: 1.6, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={generate} disabled={busy || !brief.trim()}
-              style={{ padding: "9px 16px", background: busy || !brief.trim() ? T.paper : color, border: "none", borderRadius: 8, color: busy || !brief.trim() ? T.inkFaint : T.white, fontSize: 14, fontWeight: 700, cursor: busy || !brief.trim() ? "not-allowed" : "pointer" }}>
+            <button onClick={generate} disabled={!canGenerate}
+              style={{ padding: "9px 16px", background: !canGenerate ? T.paper : color, border: "none", borderRadius: 8, color: !canGenerate ? T.inkFaint : T.white, fontSize: 14, fontWeight: 700, cursor: !canGenerate ? "not-allowed" : "pointer" }}>
               {hasDraft ? "フィードバックを反映して再提案" : "案を出す"}
             </button>
             {hasDraft && (

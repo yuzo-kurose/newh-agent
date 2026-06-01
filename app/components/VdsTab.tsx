@@ -20,6 +20,7 @@ interface Props {
 }
 
 const DOWNSTREAM = ["strategy", "sustainability", "revenue", "project"];
+const BRIEF_STORAGE_KEY = "newh-agent.vdsBrief";
 
 const BLOCK_FIELD_LABELS: Record<string, Record<string, string>> = {
   strategy: { market: "市場", competitor: "競合", advantage: "戦略・優位性", mechanism: "仕組み" },
@@ -56,7 +57,15 @@ function ReviewBadge({ review }: { review: ReviewResult }) {
 }
 
 export default function VdsTab({ projectContext, results, onPersist }: Props) {
-  const [brief, setBrief] = useState(projectContext);
+  const [brief, setBrief] = useState<string>(() => {
+    if (typeof window === "undefined") return projectContext;
+    return window.localStorage.getItem(BRIEF_STORAGE_KEY) ?? projectContext;
+  });
+
+  const updateBrief = (value: string) => {
+    setBrief(value);
+    if (typeof window !== "undefined") window.localStorage.setItem(BRIEF_STORAGE_KEY, value);
+  };
   const [resultsState, setResultsState] = useState<VdsResults>(results);
   const [runtime, setRuntime] = useState<Record<string, BlockRuntime>>({});
   const [running, setRunning] = useState(false);
@@ -118,7 +127,7 @@ export default function VdsTab({ projectContext, results, onPersist }: Props) {
 
       <div>
         <div style={{ fontSize: 13, fontWeight: 700, color: T.inkMuted, marginBottom: 4 }}>案件ブリーフ（プロジェクトコンテキストから引用・編集可）</div>
-        <textarea value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="例：大手食品メーカー。50代向けの健康食品の新規事業を立ち上げたい。予算は半年・チーム3名。"
+        <textarea value={brief} onChange={(e) => updateBrief(e.target.value)} placeholder="例：大手食品メーカー。50代向けの健康食品の新規事業を立ち上げたい。予算は半年・チーム3名。"
           style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 15, lineHeight: 1.6, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
       </div>
 
