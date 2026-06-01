@@ -72,6 +72,7 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
   const [runtime, setRuntime] = useState<Record<string, BlockRuntime>>({});
   const [running, setRunning] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [canvasFull, setCanvasFull] = useState(false);
   const resultsRef = useRef<VdsResults>(results);
 
   const toggle = (id: string) => setCollapsed((c) => ({ ...c, [id]: !c[id] }));
@@ -140,6 +141,27 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1600 }}>
+      {canvasFull && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: T.white, display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
+            <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>VDS全体図</span>
+            <span style={{ fontSize: 12, color: T.inkMuted }}>各箱は右下をドラッグでサイズ調整できます</span>
+            <button onClick={() => setCanvasFull(false)} style={{ marginLeft: "auto", padding: "7px 16px", background: T.ink, border: "none", borderRadius: 8, color: T.white, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>✕ 閉じる</button>
+          </div>
+          <div style={{ flex: 1, overflow: "auto", padding: 20 }}>
+            <VdsCanvas
+              fullscreen
+              concept={conceptData}
+              conceptConfirmed={conceptConfirmed}
+              strategy={resultsState.strategy?.data as Record<string, unknown> | undefined}
+              sustainability={resultsState.sustainability?.data as Record<string, unknown> | undefined}
+              revenue={resultsState.revenue?.data as Record<string, unknown> | undefined}
+              onEditConcept={onEditConcept}
+              onEditBlock={onEditBlock}
+            />
+          </div>
+        </div>
+      )}
       <div style={{ fontSize: 14, color: T.inkMuted, lineHeight: 1.7 }}>
         プロジェクトコンテキストを起点に、まず<b>コンセプト</b>を「顧客 → 課題 → 手法 → 価値」の順に提案します。各要素はあなたのフィードバックを反映して何度でも再検証でき、確定した内容が次の要素に引き継がれます。コンセプト確定後、後続のVDSブロックを生成できます。
       </div>
@@ -150,6 +172,8 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
           <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed.canvas ? "▶" : "▼"}</span>
           <span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>VDS全体図</span>
           <span style={{ fontSize: 11, color: T.inkMuted }}>ビジネスモデルを1つの長文として言語化</span>
+          <button onClick={(e) => { e.stopPropagation(); setCanvasFull(true); }}
+            style={{ marginLeft: "auto", padding: "5px 12px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 8, color: T.inkMuted, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>⛶ 全画面</button>
         </div>
         {!collapsed.canvas && (
           <VdsCanvas
