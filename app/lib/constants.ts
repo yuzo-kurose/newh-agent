@@ -385,15 +385,15 @@ export function getTaskHypothesis(phaseId: string, taskId: string, generated: Ta
 // ============================================================
 // ターゲット顧客選定の9つの観点。テーブル表示の列定義にも使う。
 export const CONCEPT_VIEWPOINTS = [
-  { key: "quantitativeAppeal", label: "量的魅力" },
-  { key: "urgency", label: "課題逼迫性" },
-  { key: "craving", label: "解決策渇望度" },
-  { key: "advantageDifficulty", label: "優位性構築難易度" },
-  { key: "requirementDifficulty", label: "要求実現難易度" },
-  { key: "payment", label: "支払い許容額" },
-  { key: "reachability", label: "到達可能性" },
-  { key: "decisionLeadTime", label: "意思決定リードタイム" },
-  { key: "marketImpact", label: "市場浸透インパクト" },
+  { key: "quantitativeAppeal", label: "量的魅力", desc: "人数（社数）で多い/大きいか。今後伸びていくか。" },
+  { key: "urgency", label: "課題逼迫性", desc: "課題に対して逼迫感や緊急性を感じているか。" },
+  { key: "craving", label: "解決策渇望度", desc: "我々が提供する手法や価値を求め、渇望してくれるか。" },
+  { key: "advantageDifficulty", label: "優位性構築難易度", desc: "相対する競合に対して優位性を作り出すことは可能か。" },
+  { key: "requirementDifficulty", label: "要求実現難易度", desc: "求められる要求／期待水準を実現でき得るか。" },
+  { key: "payment", label: "支払い許容額", desc: "許容される金額は高いか、低いか。" },
+  { key: "reachability", label: "到達可能性", desc: "リーチ・接触することはできるか。" },
+  { key: "decisionLeadTime", label: "意思決定リードタイム", desc: "導入や契約までに必要な時間はどの程度か。" },
+  { key: "marketImpact", label: "市場浸透インパクト", desc: "その顧客の獲得で得られる市場への波及効果などの好影響はあるか。" },
 ] as const;
 
 export type ConceptViewpointKey = (typeof CONCEPT_VIEWPOINTS)[number]["key"];
@@ -473,6 +473,7 @@ export interface ConceptResult {
   structureMethod: string; // 採用した構造化手法（イシューマップ/ロジックツリー/ユーザージャーニーマップ）
   structureReason: string; // その手法を選んだ理由
   targetSegments: TargetSegment[];
+  segmentsKeyMessage: string; // 9観点評価のSo what（どのセグメントを優先すべきか・なぜか）
   primaryViewpoints: string[]; // 初期重要観点（優先した9観点）
   growthStory: GrowthStoryPhase[];
 }
@@ -567,7 +568,7 @@ const BLOCK_THINKING: Record<string, string> = {
 10.課題を切り分ける（複数の話題に分けて考える）
 
 出力の指針:
-- customer：n1の実在顧客像（ミクロ）と、その背後にある顧客群・市場サイズ感（マクロ）の両方を含める。優先した9観点の根拠が滲むように書く。
+- customer：向き合う顧客を一言で簡潔に表す（誰か。20字以内。例「共働き世帯の30代母親」「地方の中堅製造業の現場責任者」）。詳細はn1Customer・marketSize・targetSegmentsに分けて書き、customer自体は短く保つ。
 - problem：向き合うと定めた問題。ステップ4で一般化した、量と確信を両立した一文。problemQualityの4要素で評価する。
 - pain：problemの背景要因のうち据える課題。本質度（解くと問題解決につながるか）と解決可能性まで踏み込む。issueQualityの4要素で評価する。
 - structureMethod/structureReason：課題を見出すのに使った構造化手法と、その問題に合う理由。
@@ -602,7 +603,7 @@ export const AGENTS: Record<string, AgentDef> = {
   concept: {
     label: "ブロック1：コンセプト", icon: "👤", color: T.blue,
     reviewCriteria: "・ミクロの確信（n1の実在顧客が渇望する手触り）とマクロの確証（顧客群・市場サイズ・将来性）が両立しているか\n・ミクロ熱中型／マクロ依存型のどちらにも偏っていないか\n・顧客が3階層（市場／ターゲット顧客群／n1顧客）で捉えられ、9観点の選定根拠が滲むか\n・問題（量/逼迫性/時流性/意義性）と課題（量/本質度/解決可能性/時流性）が分けて捉えられ、課題が問題の背景要因として構造的に導かれているか\n・課題が本質度（解くと問題解決につながる）と解決可能性を満たすか\n・提供価値がbefore→afterで渇望感を持って表現され、手法・体験が価値と整合しているか",
-    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.concept + `\nVDSブロック1「コンセプト」を生成。前述の課題探索4ステップ・顧客選定5ステップ・9観点を内省した結果をJSONで返す。JSONのみ：\n{"oneLineConcept":"『誰の課題を手法によって価値という状態にする』を表す一文","customer":"顧客（n1の実在像＋背後の顧客群・市場サイズ感を両立）","problem":"向き合う問題（量と確信を両立した一文）","pain":"据える課題（本質度・解決可能性まで踏み込む）","method":"手法（抽象：顧客に何を提供するか）","methodFunctions":["機能（手法の具体）"],"value":"価値（抽象：顧客が何を得るか・before→after）","valueExperiences":["体験（価値の具体）"],"ideaApproaches":[{"lens":"着眼点（例：悪い面をなくす）","hmw":"どうすれば〜できるか","idea":"手法・価値の案"}],"n1Customer":"n1の実在顧客像（1人の手触り）","marketSize":"市場サイズ感（マクロの確証）","problemQuality":{"volume":{"score":3,"comment":"一言"},"urgency":{"score":3,"comment":"一言"},"timeliness":{"score":3,"comment":"一言"},"significance":{"score":3,"comment":"一言"}},"issueQuality":{"volume":{"score":3,"comment":"一言"},"essence":{"score":3,"comment":"一言"},"solvability":{"score":3,"comment":"一言"},"timeliness":{"score":3,"comment":"一言"}},"structureMethod":"イシューマップ|ロジックツリー|ユーザージャーニーマップ","structureReason":"その問題に合う理由","targetSegments":[{"name":"セグメント名","axis":"発散軸（業界/規模/価値観等）","scores":{"quantitativeAppeal":{"score":3,"comment":"一言"},"urgency":{"score":3,"comment":"一言"},"craving":{"score":3,"comment":"一言"},"advantageDifficulty":{"score":3,"comment":"一言"},"requirementDifficulty":{"score":3,"comment":"一言"},"payment":{"score":3,"comment":"一言"},"reachability":{"score":3,"comment":"一言"},"decisionLeadTime":{"score":3,"comment":"一言"},"marketImpact":{"score":3,"comment":"一言"}}}],"primaryViewpoints":["初期に優先する観点とその理由"],"growthStory":[{"phase":"事業フェーズ","kgi":"フェーズKGI","focus":"重点観点","businessModel":"ビジネスモデル","asset":"得られるアセット"}]}\ntargetSegmentsは2〜3件、growthStoryは2〜3フェーズ、methodFunctions/valueExperiencesは2〜4件、ideaApproachesは2〜4件。scoreは1〜5の整数（5が最も強い/望ましい）。commentは20字以内。`,
+    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.concept + `\nVDSブロック1「コンセプト」を生成。前述の課題探索4ステップ・顧客選定5ステップ・9観点を内省した結果をJSONで返す。JSONのみ：\n{"oneLineConcept":"『誰の課題を手法によって価値という状態にする』を表す一文","customer":"顧客を一言で（誰か。20字以内・簡潔に）","problem":"向き合う問題（量と確信を両立した一文）","pain":"据える課題（本質度・解決可能性まで踏み込む）","method":"手法（抽象：顧客に何を提供するか）","methodFunctions":["機能（手法の具体）"],"value":"価値（抽象：顧客が何を得るか・before→after）","valueExperiences":["体験（価値の具体）"],"ideaApproaches":[{"lens":"着眼点（例：悪い面をなくす）","hmw":"どうすれば〜できるか","idea":"手法・価値の案"}],"n1Customer":"n1の実在顧客像（1人の手触り）","marketSize":"市場サイズ感（マクロの確証）","problemQuality":{"volume":{"score":3,"comment":"一言"},"urgency":{"score":3,"comment":"一言"},"timeliness":{"score":3,"comment":"一言"},"significance":{"score":3,"comment":"一言"}},"issueQuality":{"volume":{"score":3,"comment":"一言"},"essence":{"score":3,"comment":"一言"},"solvability":{"score":3,"comment":"一言"},"timeliness":{"score":3,"comment":"一言"}},"structureMethod":"イシューマップ|ロジックツリー|ユーザージャーニーマップ","structureReason":"その問題に合う理由","targetSegments":[{"name":"セグメント名","axis":"発散軸（業界/規模/価値観等）","scores":{"quantitativeAppeal":{"score":3,"comment":"一言"},"urgency":{"score":3,"comment":"一言"},"craving":{"score":3,"comment":"一言"},"advantageDifficulty":{"score":3,"comment":"一言"},"requirementDifficulty":{"score":3,"comment":"一言"},"payment":{"score":3,"comment":"一言"},"reachability":{"score":3,"comment":"一言"},"decisionLeadTime":{"score":3,"comment":"一言"},"marketImpact":{"score":3,"comment":"一言"}}}],"segmentsKeyMessage":"この9観点評価から言えるSo what（どのセグメントを優先すべきか・なぜかを一言で。40字以内）","primaryViewpoints":["初期に優先する観点とその理由"],"growthStory":[{"phase":"事業フェーズ","kgi":"フェーズKGI","focus":"重点観点","businessModel":"ビジネスモデル","asset":"得られるアセット"}]}\ntargetSegmentsは2〜3件、growthStoryは2〜3フェーズ、methodFunctions/valueExperiencesは2〜4件、ideaApproachesは2〜4件。scoreは1〜5の整数（5が最も強い/望ましい）。commentは20字以内。`,
     build: (brief) => `クライアント依頼：\n${brief}`,
   },
   strategy: {
@@ -653,11 +654,11 @@ const conceptElementSystem = (instruction: string, schema: string) =>
 export const CONCEPT_ELEMENTS: ConceptElementDef[] = [
   {
     key: "customer", label: "顧客", hint: "誰に向き合うか",
-    fields: ["customer", "n1Customer", "marketSize", "targetSegments", "primaryViewpoints", "growthStory"],
+    fields: ["customer", "n1Customer", "marketSize", "targetSegments", "segmentsKeyMessage", "primaryViewpoints", "growthStory"],
     maxTokens: 4500,
     system: conceptElementSystem(
       "『誰（顧客）』だけを検討する。顧客3階層（市場/ターゲット顧客群/n1）、選定9観点、選定5ステップ、成長ストーリーを反映し、ミクロの確信とマクロの確証を両立させる。",
-      `{"customer":"顧客（n1の実在像＋背後の顧客群・市場サイズ感を両立）","n1Customer":"n1の実在顧客像（1人の手触り）","marketSize":"市場サイズ感（マクロの確証）","targetSegments":[{"name":"セグメント名","axis":"発散軸（業界/規模/価値観等）","scores":{"quantitativeAppeal":{"score":3,"comment":"一言"},"urgency":{"score":3,"comment":"一言"},"craving":{"score":3,"comment":"一言"},"advantageDifficulty":{"score":3,"comment":"一言"},"requirementDifficulty":{"score":3,"comment":"一言"},"payment":{"score":3,"comment":"一言"},"reachability":{"score":3,"comment":"一言"},"decisionLeadTime":{"score":3,"comment":"一言"},"marketImpact":{"score":3,"comment":"一言"}}}],"primaryViewpoints":["初期に優先する観点とその理由"],"growthStory":[{"phase":"事業フェーズ","kgi":"フェーズKGI","focus":"重点観点","businessModel":"ビジネスモデル","asset":"得られるアセット"}]}\ntargetSegmentsは2〜3件、growthStoryは2〜3フェーズ、scoreは1〜5の整数、commentは20字以内。`
+      `{"customer":"顧客を一言で（誰か。20字以内・簡潔に）","n1Customer":"n1の実在顧客像（1人の手触り）","marketSize":"市場サイズ感（マクロの確証）","targetSegments":[{"name":"セグメント名","axis":"発散軸（業界/規模/価値観等）","scores":{"quantitativeAppeal":{"score":3,"comment":"一言"},"urgency":{"score":3,"comment":"一言"},"craving":{"score":3,"comment":"一言"},"advantageDifficulty":{"score":3,"comment":"一言"},"requirementDifficulty":{"score":3,"comment":"一言"},"payment":{"score":3,"comment":"一言"},"reachability":{"score":3,"comment":"一言"},"decisionLeadTime":{"score":3,"comment":"一言"},"marketImpact":{"score":3,"comment":"一言"}}}],"segmentsKeyMessage":"この9観点評価から言えるSo what（どのセグメントを優先すべきか・なぜかを一言で。40字以内）","primaryViewpoints":["初期に優先する観点とその理由"],"growthStory":[{"phase":"事業フェーズ","kgi":"フェーズKGI","focus":"重点観点","businessModel":"ビジネスモデル","asset":"得られるアセット"}]}\ntargetSegmentsは2〜3件、growthStoryは2〜3フェーズ、scoreは1〜5の整数、commentは20字以内。`
     ),
   },
   {

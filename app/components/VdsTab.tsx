@@ -60,7 +60,10 @@ export default function VdsTab({ projectContext, results, onPersist }: Props) {
   const [resultsState, setResultsState] = useState<VdsResults>(results);
   const [runtime, setRuntime] = useState<Record<string, BlockRuntime>>({});
   const [running, setRunning] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const resultsRef = useRef<VdsResults>(results);
+
+  const toggle = (id: string) => setCollapsed((c) => ({ ...c, [id]: !c[id] }));
 
   const conceptResult = resultsState.concept;
   const conceptData = conceptResult?.data as Partial<ConceptResult> | undefined;
@@ -121,11 +124,12 @@ export default function VdsTab({ projectContext, results, onPersist }: Props) {
 
       {/* コンセプト・スタジオ */}
       <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <div onClick={() => toggle("concept")} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, cursor: "pointer", userSelect: "none" }}>
+          <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed.concept ? "▶" : "▼"}</span>
           <span style={{ width: 24, height: 24, borderRadius: 6, background: `${AGENTS.concept.color}18`, color: AGENTS.concept.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{AGENTS.concept.icon}</span>
           <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>ブロック1：コンセプト</span>
         </div>
-        <ConceptStudio brief={brief} color={AGENTS.concept.color} initialData={conceptData} initialConfirmed={conceptConfirmed} onChange={onConceptChange} />
+        {!collapsed.concept && <ConceptStudio brief={brief} color={AGENTS.concept.color} initialData={conceptData} initialConfirmed={conceptConfirmed} onChange={onConceptChange} />}
       </div>
 
       {/* 後続ブロック */}
@@ -148,34 +152,37 @@ export default function VdsTab({ projectContext, results, onPersist }: Props) {
             const busy = phase === "generating" || phase === "reviewing" || phase === "retry";
             return (
               <div key={id} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${T.borderLight}` }}>
+                <div onClick={() => toggle(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: collapsed[id] ? "none" : `1px solid ${T.borderLight}`, cursor: "pointer", userSelect: "none" }}>
+                  <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed[id] ? "▶" : "▼"}</span>
                   <span style={{ width: 24, height: 24, borderRadius: 6, background: `${agent.color}18`, color: agent.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{agent.icon}</span>
                   <span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{agent.label}</span>
                   <span style={{ marginLeft: "auto", fontSize: 13, color: phase === "error" ? T.red : phase === "done" ? T.green : T.inkMuted }}>
                     {PHASE_LABEL[phase]}{busy && rt?.attempt ? `（試行${rt.attempt}）` : ""}
                   </span>
                 </div>
-                <div style={{ padding: "12px 14px" }}>
-                  {phase === "error" && <div style={{ fontSize: 14, color: T.red }}>⚠ {rt?.error}</div>}
-                  {busy && (
-                    <div style={{ fontSize: 13, color: T.inkFaint, fontFamily: "monospace", whiteSpace: "pre-wrap", maxHeight: 90, overflow: "hidden", lineHeight: 1.5 }}>
-                      {rt?.streamText ? rt.streamText.slice(-400) : "生成しています…"}
-                    </div>
-                  )}
-                  {!busy && !res && phase !== "error" && <div style={{ fontSize: 14, color: T.inkFaint }}>未生成です。</div>}
-                  {!busy && res && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {BLOCK_FIELD_LABELS[id]
-                        ? <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                            {Object.entries(BLOCK_FIELD_LABELS[id]).map(([key, label]) => (
-                              <Field key={key} label={label} value={String((res.data as Record<string, unknown>)?.[key] ?? "")} color={agent.color} />
-                            ))}
-                          </div>
-                        : <RenderValue value={res.data} />}
-                      {res.review && <ReviewBadge review={res.review} />}
-                    </div>
-                  )}
-                </div>
+                {!collapsed[id] && (
+                  <div style={{ padding: "12px 14px" }}>
+                    {phase === "error" && <div style={{ fontSize: 14, color: T.red }}>⚠ {rt?.error}</div>}
+                    {busy && (
+                      <div style={{ fontSize: 13, color: T.inkFaint, fontFamily: "monospace", whiteSpace: "pre-wrap", maxHeight: 90, overflow: "hidden", lineHeight: 1.5 }}>
+                        {rt?.streamText ? rt.streamText.slice(-400) : "生成しています…"}
+                      </div>
+                    )}
+                    {!busy && !res && phase !== "error" && <div style={{ fontSize: 14, color: T.inkFaint }}>未生成です。</div>}
+                    {!busy && res && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        {BLOCK_FIELD_LABELS[id]
+                          ? <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                              {Object.entries(BLOCK_FIELD_LABELS[id]).map(([key, label]) => (
+                                <Field key={key} label={label} value={String((res.data as Record<string, unknown>)?.[key] ?? "")} color={agent.color} />
+                              ))}
+                            </div>
+                          : <RenderValue value={res.data} />}
+                        {res.review && <ReviewBadge review={res.review} />}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

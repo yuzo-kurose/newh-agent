@@ -87,13 +87,21 @@ export function CustomerView({ data, color }: { data: Partial<ConceptResult>; co
       {segments.length > 0 && (
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, color: T.inkMuted, marginBottom: 6 }}>ターゲット顧客 × 9観点評価</div>
+          {data.segmentsKeyMessage && (
+            <div style={{ background: `${color}10`, border: `1px solid ${color}40`, borderLeft: `4px solid ${color}`, borderRadius: 8, padding: "10px 12px", marginBottom: 8, fontSize: 13.5, fontWeight: 700, lineHeight: 1.6, color: T.ink }}>
+              <span style={{ fontSize: 10, fontWeight: 800, color, marginRight: 6 }}>So what</span>{data.segmentsKeyMessage}
+            </div>
+          )}
           <div style={{ overflowX: "auto", border: `1px solid ${T.border}`, borderRadius: 8 }}>
             <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
               <thead>
                 <tr style={{ background: T.offWhite }}>
                   <th style={{ textAlign: "left", padding: "8px 10px", position: "sticky", left: 0, background: T.offWhite, borderBottom: `1px solid ${T.border}`, minWidth: 130 }}>セグメント</th>
                   {CONCEPT_VIEWPOINTS.map((vp) => (
-                    <th key={vp.key} style={{ padding: "8px 6px", borderBottom: `1px solid ${T.border}`, borderLeft: `1px solid ${T.borderLight}`, minWidth: 76, fontWeight: 700, color: T.inkMuted, lineHeight: 1.3 }}>{vp.label}</th>
+                    <th key={vp.key} title={vp.desc} style={{ padding: "8px 6px", borderBottom: `1px solid ${T.border}`, borderLeft: `1px solid ${T.borderLight}`, minWidth: 76, fontWeight: 700, color: T.inkMuted, lineHeight: 1.3, cursor: "help" }}>
+                      <span style={{ borderBottom: `1px dotted ${T.inkFaint}` }}>{vp.label}</span>
+                      <span style={{ fontSize: 9, color: T.inkFaint, marginLeft: 2 }}>ⓘ</span>
+                    </th>
                   ))}
                 </tr>
               </thead>
