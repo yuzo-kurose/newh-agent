@@ -461,10 +461,14 @@ export interface ConceptResult {
   customer: string;
   problem: string; // 向き合う「問題」（解決が望まれる状態）
   pain: string; // 据える「課題」（問題の背景要因のうち向き合うもの）
+  microIssue: string; // VDS図：超具体的な課題（n1が抱える）
+  macroIssue: string; // VDS図：最大公約数的な課題（顧客群に共通）
   method: string; // 手法（抽象）：顧客に何を提供するか＝ソリューション群
   methodFunctions: string[]; // 手法の具体＝機能
   value: string; // 価値（抽象）：顧客が何を得るか＝成果や状態
   valueExperiences: string[]; // 価値の具体＝体験
+  microValue: string; // VDS図：超具体的な価値（n1が渇望する）
+  macroValue: string; // VDS図：最大公約数的な価値（顧客群が渇望する）
   ideaApproaches: MethodValueIdea[]; // 10着眼点から発想した手法・価値の案
   n1Customer: string; // ミクロの確信：実在する1人
   marketSize: string; // マクロの確証：市場サイズ感
@@ -608,20 +612,20 @@ export const AGENTS: Record<string, AgentDef> = {
   },
   strategy: {
     label: "ブロック2：戦略と仕組み", icon: "⚔", color: T.orange,
-    reviewCriteria: "・市場規模・成長性がマクロ視点で語られているか\n・直接競合＋代替手段まで競合として捉えているか\n・「なぜ他社でなく自社か」を答えているか\n・仕組みがコンセプトと整合しているか",
-    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.strategy + `\nVDSブロック2「戦略と仕組み（マクロ視点）」を生成。JSONのみ：\n{"market":"市場（規模・特性・成長性）","competitor":"競合（直接競合＋代替手段）","advantage":"戦略・優位性（なぜ自社か）","mechanism":"仕組み（オペレーション・体制・パートナー）"}`,
+    reviewCriteria: "・直接競合＋代替手段まで競合として捉えているか\n・選ばれる理由・選ばれ続ける理由が競争優位性として語られ「なぜ自社か」に答えているか\n・活動/機能・自社/パートナーリソース・チャネルが具体で、コンセプトと整合しているか",
+    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.strategy + `\nVDSブロック2「戦略と仕組み（マクロ視点）」をVDS図の構造で生成。優位性（競合に対しどう勝つか）と仕組み（どう実現するか）に分ける。JSONのみ：\n{"competitor":"競合となる競合代替品（直接競合＋代替手段）","chosenReason":"競争優位性のある『選ばれる理由』","keepChosenReason":"競争優位性のある『選ばれ続ける理由』","activity":"そのための活動・機能・仕組み","ownResource":"活用する自社リソース","partnerResource":"活用するパートナーリソース","channel":"チャネル・提供手段（伝え、届ける経路）"}`,
     build: (brief, prev) => `クライアント依頼：\n${brief}\n\nブロック1:\n${JSON.stringify(prev.concept, null, 2)}`,
   },
   sustainability: {
     label: "ブロック3：持続戦略", icon: "∞", color: T.green,
-    reviewCriteria: "・強みとなる資産が競合が真似できない固有のものか\n・蓄積されるものが実際に積み上がるものか\n・強化ループの因果が明確か\n・続けるほど強くなる構造になっているか",
-    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.sustainability + `\nVDSブロック3「持続戦略」を生成。JSONのみ：\n{"assets":"強みとなる資産（競合が真似できない固有資産）","accumulation":"蓄積されるもの（データ・関係性・ノウハウ）","loop":"強化ループ（蓄積→強化→還元の因果）"}`,
+    reviewCriteria: "・事業継続により蓄積されるものが実際に積み上がる固有資産か\n・成長/強化されるものが深まり強まる因果が明確か\n・続けるほど強くなり事業の継続性を見込めるか",
+    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.sustainability + `\nVDSブロック3「持続戦略」をVDS図の構造で生成。JSONのみ：\n{"accumulated":"事業継続により蓄積されるもの（データ・関係性・ノウハウ等）","strengthened":"蓄積によって成長・強化されるもの（深まり強まるもの）","sustainabilityReason":"続けるほど強くなり事業の継続性を見込める理由"}`,
     build: (brief, prev) => `クライアント依頼：\n${brief}\n\nブロック1:\n${JSON.stringify(prev.concept)}\nブロック2:\n${JSON.stringify(prev.strategy)}`,
   },
   revenue: {
     label: "ブロック4：収支モデル", icon: "¥", color: T.purple,
-    reviewCriteria: "・フロー型かストック型か明記されているか\n・誰から何に対して課金するかが明確か\n・主要コスト項目が具体的か\n・黒字化の時期・UEの仮説があるか",
-    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.revenue + `\nVDSブロック4「収支モデル」を生成。JSONのみ：\n{"revenueStructure":"収益構造（フロー/ストック・課金設計）","costStructure":"コスト（固定費・変動費の主要項目）","balanceOutlook":"収支見立て（黒字化・UE仮説）"}`,
+    reviewCriteria: "・回収エンジン（何で収益を生むか）が明確か\n・料金モデルで誰から何に課金し収入を創るか言い切れているか\n・主要コスト構造が具体で、採算成立の目算（黒字化・UE）が立つか",
+    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.revenue + `\nVDSブロック4「利益モデル」をVDS図の構造で生成。JSONのみ：\n{"recoveryEngine":"事業活動の中における回収エンジン（何で投資を回収するか）","pricingModel":"料金モデル（誰から何に課金し収入を創るか・フロー/ストック）","costStructure":"コスト/コスト構造（主要な固定費・変動費）","profitability":"採算成立の目算（黒字化時期・ユニットエコノミクス仮説）"}`,
     build: (brief, prev) => `クライアント依頼：\n${brief}\n\nブロック1:\n${JSON.stringify(prev.concept)}\nブロック2:\n${JSON.stringify(prev.strategy)}\nブロック3:\n${JSON.stringify(prev.sustainability)}`,
   },
   project: {
@@ -663,11 +667,11 @@ export const CONCEPT_ELEMENTS: ConceptElementDef[] = [
   },
   {
     key: "issue", label: "課題", hint: "なぜ起きるのか・何を課題に据えるか",
-    fields: ["problem", "pain", "problemQuality", "issueQuality", "structureMethod", "structureReason"],
-    maxTokens: 2500,
+    fields: ["problem", "pain", "microIssue", "macroIssue", "problemQuality", "issueQuality", "structureMethod", "structureReason"],
+    maxTokens: 2800,
     system: conceptElementSystem(
-      "確定した顧客に対する『問題と課題』だけを検討する。問題と課題を分け、問題の質4要素・課題の質4要素で評価し、適切な構造化手法で課題を導く。課題探索4ステップを踏む。",
-      `{"problem":"向き合う問題（量と確信を両立した一文）","pain":"据える課題（本質度・解決可能性まで踏み込む）","problemQuality":{"volume":{"score":3,"comment":"一言"},"urgency":{"score":3,"comment":"一言"},"timeliness":{"score":3,"comment":"一言"},"significance":{"score":3,"comment":"一言"}},"issueQuality":{"volume":{"score":3,"comment":"一言"},"essence":{"score":3,"comment":"一言"},"solvability":{"score":3,"comment":"一言"},"timeliness":{"score":3,"comment":"一言"}},"structureMethod":"イシューマップ|ロジックツリー|ユーザージャーニーマップ","structureReason":"その問題に合う理由"}\nscoreは1〜5の整数、commentは20字以内。`
+      "確定した顧客に対する『問題と課題』だけを検討する。問題と課題を分け、問題の質4要素・課題の質4要素で評価し、適切な構造化手法で課題を導く。課題探索4ステップを踏む。課題はVDS図用に、n1が抱える超具体的な課題（microIssue）と、顧客群に共通する最大公約数的な課題（macroIssue）の2粒度でも表現する。",
+      `{"problem":"向き合う問題（量と確信を両立した一文）","pain":"据える課題（本質度・解決可能性まで踏み込む）","microIssue":"超具体的な課題（n1が抱える具体的な困りごと・40字以内）","macroIssue":"最大公約数的な課題（顧客群に共通する課題・40字以内）","problemQuality":{"volume":{"score":3,"comment":"一言"},"urgency":{"score":3,"comment":"一言"},"timeliness":{"score":3,"comment":"一言"},"significance":{"score":3,"comment":"一言"}},"issueQuality":{"volume":{"score":3,"comment":"一言"},"essence":{"score":3,"comment":"一言"},"solvability":{"score":3,"comment":"一言"},"timeliness":{"score":3,"comment":"一言"}},"structureMethod":"イシューマップ|ロジックツリー|ユーザージャーニーマップ","structureReason":"その問題に合う理由"}\nscoreは1〜5の整数、commentは20字以内。`
     ),
   },
   {
@@ -681,11 +685,11 @@ export const CONCEPT_ELEMENTS: ConceptElementDef[] = [
   },
   {
     key: "value", label: "価値", hint: "顧客は何を得るか",
-    fields: ["value", "valueExperiences", "oneLineConcept"],
-    maxTokens: 2000,
+    fields: ["value", "valueExperiences", "microValue", "macroValue", "oneLineConcept"],
+    maxTokens: 2200,
     system: conceptElementSystem(
-      "確定した顧客・課題・手法から、顧客が得る『価値』だけを検討する。価値（抽象）と体験（具体）を分け、before→afterで渇望される状態を描く。最後にコンセプト全体を『誰の課題を手法によって価値という状態にする』の一文（oneLineConcept）に凝縮する。",
-      `{"value":"価値（抽象：顧客が何を得るか・before→after）","valueExperiences":["体験（価値の具体）"],"oneLineConcept":"『誰の課題を手法によって価値という状態にする』を表す一文"}\nvalueExperiencesは2〜4件。`
+      "確定した顧客・課題・手法から、顧客が得る『価値』だけを検討する。価値（抽象）と体験（具体）を分け、before→afterで渇望される状態を描く。VDS図用に、n1が渇望する超具体的な価値（microValue）と、顧客群が渇望する最大公約数的な価値（macroValue）の2粒度でも表現する。最後にコンセプト全体を『誰の課題を手法によって価値という状態にする』の一文（oneLineConcept）に凝縮する。",
+      `{"value":"価値（抽象：顧客が何を得るか・before→after）","valueExperiences":["体験（価値の具体）"],"microValue":"超具体的な価値（n1が渇望する状態・40字以内）","macroValue":"最大公約数的な価値（顧客群が渇望する状態・40字以内）","oneLineConcept":"『誰の課題を手法によって価値という状態にする』を表す一文"}\nvalueExperiencesは2〜4件。`
     ),
   },
 ];

@@ -4,6 +4,7 @@ import { AGENTS, T, ReviewResult, ConceptResult, ConceptElementKey } from "../li
 import { runBlock, BlockPhase } from "../lib/generate";
 import { Field, RenderValue } from "./conceptParts";
 import ConceptStudio from "./ConceptStudio";
+import VdsCanvas from "./VdsCanvas";
 
 export interface VdsBlockResult {
   data: unknown;
@@ -23,9 +24,9 @@ const DOWNSTREAM = ["strategy", "sustainability", "revenue", "project"];
 const BRIEF_STORAGE_KEY = "newh-agent.vdsBrief";
 
 const BLOCK_FIELD_LABELS: Record<string, Record<string, string>> = {
-  strategy: { market: "市場", competitor: "競合", advantage: "戦略・優位性", mechanism: "仕組み" },
-  sustainability: { assets: "強みとなる資産", accumulation: "蓄積されるもの", loop: "強化ループ" },
-  revenue: { revenueStructure: "収益構造", costStructure: "コスト", balanceOutlook: "収支見立て" },
+  strategy: { competitor: "競合代替品", chosenReason: "選ばれる理由", keepChosenReason: "選ばれ続ける理由", activity: "活動・機能・仕組み", ownResource: "自社リソース", partnerResource: "パートナーリソース", channel: "チャネル・提供手段" },
+  sustainability: { accumulated: "蓄積されるもの", strengthened: "成長・強化されるもの", sustainabilityReason: "継続性の理由" },
+  revenue: { recoveryEngine: "回収エンジン", pricingModel: "料金モデル", costStructure: "コスト構造", profitability: "採算成立" },
 };
 
 type RuntimePhase = BlockPhase | "idle" | "error";
@@ -123,6 +124,24 @@ export default function VdsTab({ projectContext, results, onPersist }: Props) {
     <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1280 }}>
       <div style={{ fontSize: 14, color: T.inkMuted, lineHeight: 1.7 }}>
         プロジェクトコンテキストを起点に、まず<b>コンセプト</b>を「顧客 → 課題 → 手法 → 価値」の順に提案します。各要素はあなたのフィードバックを反映して何度でも再検証でき、確定した内容が次の要素に引き継がれます。コンセプト確定後、後続のVDSブロックを生成できます。
+      </div>
+
+      {/* VDS全体図（確定した要素・生成済みブロックから埋まる） */}
+      <div style={{ background: T.offWhite, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
+        <div onClick={() => toggle("canvas")} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: collapsed.canvas ? 0 : 10, cursor: "pointer", userSelect: "none" }}>
+          <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed.canvas ? "▶" : "▼"}</span>
+          <span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>VDS全体図</span>
+          <span style={{ fontSize: 11, color: T.inkMuted }}>ビジネスモデルを1つの長文として言語化</span>
+        </div>
+        {!collapsed.canvas && (
+          <VdsCanvas
+            concept={conceptData}
+            conceptConfirmed={conceptConfirmed}
+            strategy={resultsState.strategy?.data as Record<string, unknown> | undefined}
+            sustainability={resultsState.sustainability?.data as Record<string, unknown> | undefined}
+            revenue={resultsState.revenue?.data as Record<string, unknown> | undefined}
+          />
+        )}
       </div>
 
       <div>

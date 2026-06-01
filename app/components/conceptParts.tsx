@@ -164,6 +164,12 @@ export function IssueView({ data, color }: { data: Partial<ConceptResult>; color
         <Field label="課題（据える背景要因）" value={data.pain} color={color} />
         <div style={{ marginTop: 6 }}><QualityFactors factors={ISSUE_QUALITY_FACTORS} scores={data.issueQuality} /></div>
       </div>
+      {(data.microIssue || data.macroIssue) && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+          <Field label="超具体的な課題（ミクロ）" value={data.microIssue} color={T.blue} />
+          <Field label="最大公約数的な課題（マクロ）" value={data.macroIssue} color={T.orange} />
+        </div>
+      )}
       {data.structureMethod && (
         <div style={{ fontSize: 13, color: T.inkMuted, lineHeight: 1.6 }}>
           構造化手法：<b style={{ color: T.ink }}>{data.structureMethod}</b>{data.structureReason ? ` — ${data.structureReason}` : ""}
@@ -213,6 +219,12 @@ export function ValueView({ data, color, showOneLine = true }: { data: Partial<C
         </div>
       )}
       <Field label="価値（顧客が何を得るか・before→after）" value={data.value} color={color} />
+      {(data.microValue || data.macroValue) && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+          <Field label="超具体的な価値（ミクロ）" value={data.microValue} color={T.blue} />
+          <Field label="最大公約数的な価値（マクロ）" value={data.macroValue} color={T.orange} />
+        </div>
+      )}
       {Array.isArray(data.valueExperiences) && data.valueExperiences.length > 0 && (
         <div>
           <div style={{ fontSize: 11.5, fontWeight: 800, color: T.inkFaint, marginBottom: 3 }}>体験（具体）</div>
