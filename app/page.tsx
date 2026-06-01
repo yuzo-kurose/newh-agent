@@ -11,73 +11,65 @@ import GeneratorModal from "./components/GeneratorModal";
 import ProjectContextTab from "./components/ProjectContextTab";
 import VdsTab, { VdsResults } from "./components/VdsTab";
 
-const COMPLETED_TASKS_STORAGE_KEY = "newh-agent.completedTasks";
-const TASK_HYPOTHESES_STORAGE_KEY = "newh-agent.taskHypotheses";
-const TASK_SLIDES_STORAGE_KEY = "newh-agent.taskSlides";
-const PROJECT_CONTEXT_STORAGE_KEY = "newh-agent.projectContext";
-const VDS_RESULTS_STORAGE_KEY = "newh-agent.vdsResults";
+const PROJECTS_KEY = "newh-agent.projects";
+const CURRENT_KEY = "newh-agent.currentProject";
+const pkey = (pid: string, name: string) => `newh-agent.p.${pid}.${name}`;
+const PROJECT_DATA_KEYS = ["completedTasks", "taskHypotheses", "taskSlides", "projectContext", "vdsResults", "vdsBrief"];
 
-function loadCompletedTasks(): Record<string, boolean> {
-  if (typeof window === "undefined") return {};
+export interface ProjectMeta { id: string; name: string; }
+
+function readObj<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
   try {
-    const stored = window.localStorage.getItem(COMPLETED_TASKS_STORAGE_KEY);
-    if (!stored) return {};
-    const parsed = JSON.parse(stored);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    const s = window.localStorage.getItem(key);
+    if (!s) return fallback;
+    const p = JSON.parse(s);
+    return p && typeof p === "object" ? (p as T) : fallback;
   } catch {
-    return {};
+    return fallback;
   }
 }
+const readStr = (key: string): string => (typeof window === "undefined" ? "" : window.localStorage.getItem(key) ?? "");
 
-function loadTaskHypotheses(): TaskHypothesisMap {
-  if (typeof window === "undefined") return {};
-  try {
-    const stored = window.localStorage.getItem(TASK_HYPOTHESES_STORAGE_KEY);
-    if (!stored) return {};
-    const parsed = JSON.parse(stored);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
+const loadCompleted = (pid: string) => readObj<Record<string, boolean>>(pkey(pid, "completedTasks"), {});
+const loadHyp = (pid: string) => readObj<TaskHypothesisMap>(pkey(pid, "taskHypotheses"), {});
+const loadSlides = (pid: string) => readObj<TaskSlideMap>(pkey(pid, "taskSlides"), {});
+const loadVds = (pid: string) => readObj<VdsResults>(pkey(pid, "vdsResults"), {});
+const loadCtx = (pid: string) => readStr(pkey(pid, "projectContext"));
+
+// プロジェクト一覧と現在IDを初期化。初回は既存データを「プロジェクト1」へ移行する。
+function initProjects(): { projects: ProjectMeta[]; currentId: string } {
+  if (typeof window === "undefined") return { projects: [{ id: "p1", name: "プロジェクト1" }], currentId: "p1" };
+  let projects = readObj<ProjectMeta[]>(PROJECTS_KEY, []);
+  if (!Array.isArray(projects)) projects = [];
+  let currentId = window.localStorage.getItem(CURRENT_KEY) || "";
+  if (projects.length === 0) {
+    const id = "p1";
+    projects = [{ id, name: "プロジェクト1" }];
+    window.localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+    PROJECT_DATA_KEYS.forEach((name) => {
+      const v = window.localStorage.getItem(`newh-agent.${name}`);
+      if (v !== null && window.localStorage.getItem(pkey(id, name)) === null) window.localStorage.setItem(pkey(id, name), v);
+    });
+    currentId = id;
   }
-}
-
-function loadProjectContext(): string {
-  if (typeof window === "undefined") return "";
-  return window.localStorage.getItem(PROJECT_CONTEXT_STORAGE_KEY) ?? "";
-}
-
-function loadTaskSlides(): TaskSlideMap {
-  if (typeof window === "undefined") return {};
-  try {
-    const stored = window.localStorage.getItem(TASK_SLIDES_STORAGE_KEY);
-    if (!stored) return {};
-    const parsed = JSON.parse(stored);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function loadVdsResults(): VdsResults {
-  if (typeof window === "undefined") return {};
-  try {
-    const stored = window.localStorage.getItem(VDS_RESULTS_STORAGE_KEY);
-    if (!stored) return {};
-    const parsed = JSON.parse(stored);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
+  if (!currentId || !projects.find((p) => p.id === currentId)) currentId = projects[0].id;
+  window.localStorage.setItem(CURRENT_KEY, currentId);
+  return { projects, currentId };
 }
 
 export default function NEWhAgent() {
+  const [init] = useState(initProjects);
+  const [projects, setProjects] = useState<ProjectMeta[]>(init.projects);
+  const [currentId, setCurrentId] = useState<string>(init.currentId);
+
   const [activePhase, setActivePhase] = useState(0);
   const [activeView, setActiveView] = useState<"context" | "phase" | "vds">("phase");
-  const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>(loadCompletedTasks);
-  const [generatedHypotheses, setGeneratedHypotheses] = useState<TaskHypothesisMap>(loadTaskHypotheses);
-  const [taskSlides, setTaskSlides] = useState<TaskSlideMap>(loadTaskSlides);
-  const [vdsResults, setVdsResults] = useState<VdsResults>(loadVdsResults);
-  const [projectContext, setProjectContextState] = useState(loadProjectContext);
+  const [completedTasks, setCompletedTasks] = useState<Record<string, boolean>>(() => loadCompleted(init.currentId));
+  const [generatedHypotheses, setGeneratedHypotheses] = useState<TaskHypothesisMap>(() => loadHyp(init.currentId));
+  const [taskSlides, setTaskSlides] = useState<TaskSlideMap>(() => loadSlides(init.currentId));
+  const [vdsResults, setVdsResults] = useState<VdsResults>(() => loadVds(init.currentId));
+  const [projectContext, setProjectContextState] = useState<string>(() => loadCtx(init.currentId));
   const [activeTab, setActiveTab] = useState<"tasks" | "checks" | "chat">("tasks");
   const [showGenerator, setShowGenerator] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -86,6 +78,48 @@ export default function NEWhAgent() {
   const doneTasks = phase.tasks.filter((t) => completedTasks[`${phase.id}-${t.id}`]).length;
   const progress = Math.round((doneTasks / phase.tasks.length) * 100);
 
+  const saveProjects = (next: ProjectMeta[]) => {
+    setProjects(next);
+    window.localStorage.setItem(PROJECTS_KEY, JSON.stringify(next));
+  };
+
+  const selectProject = (id: string) => {
+    if (id === currentId) return;
+    window.localStorage.setItem(CURRENT_KEY, id);
+    setCurrentId(id);
+    setCompletedTasks(loadCompleted(id));
+    setGeneratedHypotheses(loadHyp(id));
+    setTaskSlides(loadSlides(id));
+    setVdsResults(loadVds(id));
+    setProjectContextState(loadCtx(id));
+  };
+
+  const createProject = () => {
+    const name = (window.prompt("新しいプロジェクト名", `プロジェクト${projects.length + 1}`) || "").trim();
+    if (!name) return;
+    const id = "p" + Date.now();
+    saveProjects([...projects, { id, name }]);
+    selectProject(id);
+    setActiveView("vds");
+  };
+
+  const renameProject = (id: string) => {
+    const cur = projects.find((p) => p.id === id);
+    const name = (window.prompt("プロジェクト名を変更", cur?.name || "") || "").trim();
+    if (!name) return;
+    saveProjects(projects.map((p) => (p.id === id ? { ...p, name } : p)));
+  };
+
+  const deleteProject = (id: string) => {
+    if (projects.length <= 1) { window.alert("最後のプロジェクトは削除できません。"); return; }
+    const cur = projects.find((p) => p.id === id);
+    if (!window.confirm(`「${cur?.name}」を削除しますか？このプロジェクトの保存データも消えます。`)) return;
+    PROJECT_DATA_KEYS.forEach((n) => window.localStorage.removeItem(pkey(id, n)));
+    const next = projects.filter((p) => p.id !== id);
+    saveProjects(next);
+    if (currentId === id) selectProject(next[0].id);
+  };
+
   const setActivePhaseAndView = (index: number) => {
     setActivePhase(index);
     setActiveView("phase");
@@ -93,13 +127,13 @@ export default function NEWhAgent() {
 
   const setProjectContext = (value: string) => {
     setProjectContextState(value);
-    window.localStorage.setItem(PROJECT_CONTEXT_STORAGE_KEY, value);
+    window.localStorage.setItem(pkey(currentId, "projectContext"), value);
   };
 
   const toggleTask = (id: string) => {
     setCompletedTasks((p) => {
       const next = { ...p, [`${phase.id}-${id}`]: !p[`${phase.id}-${id}`] };
-      window.localStorage.setItem(COMPLETED_TASKS_STORAGE_KEY, JSON.stringify(next));
+      window.localStorage.setItem(pkey(currentId, "completedTasks"), JSON.stringify(next));
       return next;
     });
   };
@@ -107,7 +141,7 @@ export default function NEWhAgent() {
   const applyHypotheses = (hypotheses: TaskHypothesisMap, contextAddition: string) => {
     const nextHypotheses = { ...generatedHypotheses, ...hypotheses };
     setGeneratedHypotheses(nextHypotheses);
-    window.localStorage.setItem(TASK_HYPOTHESES_STORAGE_KEY, JSON.stringify(nextHypotheses));
+    window.localStorage.setItem(pkey(currentId, "taskHypotheses"), JSON.stringify(nextHypotheses));
     if (contextAddition.trim()) {
       const nextContext = projectContext.trim()
         ? `${projectContext.trim()}\n\n---\n${contextAddition.trim()}`
@@ -122,18 +156,18 @@ export default function NEWhAgent() {
   const updateHypothesis = (key: string, hypothesis: TaskHypothesis) => {
     const nextHypotheses = { ...generatedHypotheses, [key]: hypothesis };
     setGeneratedHypotheses(nextHypotheses);
-    window.localStorage.setItem(TASK_HYPOTHESES_STORAGE_KEY, JSON.stringify(nextHypotheses));
+    window.localStorage.setItem(pkey(currentId, "taskHypotheses"), JSON.stringify(nextHypotheses));
   };
 
   const updateTaskSlide = (key: string, slide: TaskSlide) => {
     const nextSlides = { ...taskSlides, [key]: slide };
     setTaskSlides(nextSlides);
-    window.localStorage.setItem(TASK_SLIDES_STORAGE_KEY, JSON.stringify(nextSlides));
+    window.localStorage.setItem(pkey(currentId, "taskSlides"), JSON.stringify(nextSlides));
   };
 
   const persistVdsResults = (results: VdsResults) => {
     setVdsResults(results);
-    window.localStorage.setItem(VDS_RESULTS_STORAGE_KEY, JSON.stringify(results));
+    window.localStorage.setItem(pkey(currentId, "vdsResults"), JSON.stringify(results));
   };
 
   return (
@@ -150,7 +184,15 @@ export default function NEWhAgent() {
       </header>
 
       <div style={{ display:"flex", flex:1, overflow:"hidden", height:"calc(100vh - 57px)" }}>
-        <Sidebar phases={PHASES} activePhase={activePhase} activeView={activeView} onOpenContext={() => setActiveView("context")} onOpenVds={() => setActiveView("vds")} setActivePhase={setActivePhaseAndView} completedTasks={completedTasks} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(p => !p)} />
+        <Sidebar
+          phases={PHASES} activePhase={activePhase} activeView={activeView}
+          onOpenContext={() => setActiveView("context")} onOpenVds={() => setActiveView("vds")}
+          setActivePhase={setActivePhaseAndView} completedTasks={completedTasks}
+          collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(p => !p)}
+          projects={projects} currentProjectId={currentId}
+          onSelectProject={selectProject} onCreateProject={createProject}
+          onRenameProject={renameProject} onDeleteProject={deleteProject}
+        />
 
         <main style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
           {activeView==="phase" ? (
@@ -163,7 +205,7 @@ export default function NEWhAgent() {
                   <div style={{ fontSize:17, fontWeight:800, color:T.ink, letterSpacing:"-0.02em" }}>
                     {activeView==="vds" ? "VDS設計" : "プロジェクトコンテキスト"}
                   </div>
-                  <div style={{ fontSize:13, color:T.inkMuted, marginTop:1 }}>
+                  <div style={{ fontSize:12, color:T.inkMuted, marginTop:1 }}>
                     {activeView==="vds" ? "VDSの各ブロックを生成→レビュー→リトライで作成する。" : "仮説生成時に読み込む案件情報を蓄積する。"}
                   </div>
                 </div>
@@ -176,19 +218,19 @@ export default function NEWhAgent() {
               const labels = { tasks:"タスク", checks:"チェック", chat:"AI相談" };
               return (
                 <button key={tab} onClick={() => setActiveTab(tab)}
-                  style={{ padding:"10px 20px", background:"transparent", border:"none", borderBottom:activeTab===tab?`2px solid ${phase.band}`:"2px solid transparent", color:activeTab===tab?T.ink:T.inkFaint, cursor:"pointer", fontSize:15, fontWeight:activeTab===tab?700:400, transition:"all 0.15s" }}>
+                  style={{ padding:"10px 20px", background:"transparent", border:"none", borderBottom:activeTab===tab?`2px solid ${phase.band}`:"2px solid transparent", color:activeTab===tab?T.ink:T.inkFaint, cursor:"pointer", fontSize:13, fontWeight:activeTab===tab?700:400, transition:"all 0.15s" }}>
                   {labels[tab]}
                 </button>
               );
             })}
-            <button onClick={() => setShowGenerator(true)} style={{ marginLeft:"auto", marginRight:16, padding:"7px 13px", background:T.ink, border:"none", borderRadius:8, color:T.white, fontSize:14, fontWeight:700, cursor:"pointer" }}>
+            <button onClick={() => setShowGenerator(true)} style={{ marginLeft:"auto", marginRight:16, padding:"7px 13px", background:T.ink, border:"none", borderRadius:8, color:T.white, fontSize:12, fontWeight:700, cursor:"pointer" }}>
               タスク仮説生成 →
             </button>
           </div>}
 
           <div style={{ flex:1, overflowY:"auto", padding:"20px" }}>
             {activeView==="context" && <ProjectContextTab context={projectContext} setContext={setProjectContext} />}
-            {activeView==="vds" && <VdsTab projectContext={projectContext} results={vdsResults} onPersist={persistVdsResults} />}
+            {activeView==="vds" && <VdsTab key={currentId} projectId={currentId} projectContext={projectContext} results={vdsResults} onPersist={persistVdsResults} />}
             {activeView==="phase" && activeTab==="tasks" && <TasksTab phase={phase} completedTasks={completedTasks} generatedHypotheses={generatedHypotheses} taskSlides={taskSlides} projectContext={projectContext} toggleTask={toggleTask} updateHypothesis={updateHypothesis} updateTaskSlide={updateTaskSlide} />}
             {activeView==="phase" && activeTab==="checks" && <ChecksTab phase={phase} onOpenChat={() => setActiveTab("chat")} />}
             {activeView==="phase" && activeTab==="chat" && <ChatTab phase={phase} />}

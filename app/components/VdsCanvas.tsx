@@ -20,22 +20,22 @@ const str = (o: Obj | Partial<ConceptResult>, key: string): string => {
   return typeof v === "string" ? v : "";
 };
 
-const CELL_H = 150; // 折りたたみ時の一定の高さ（約6行）
-const CLAMP_LINES = 6;
+const CELL_H = 320; // 折りたたみ時の一定の高さ（約15行）
+const CLAMP_LINES = 15;
 
-function Cell({ label, value, color, hint, onSave }: { label: string; value: string; color: string; hint?: string; onSave?: (v: string) => void }) {
+function Cell({ label, value, color, hint, onSave, fill }: { label: string; value: string; color: string; hint?: string; onSave?: (v: string) => void; fill?: boolean }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const filled = !!value.trim();
   const text = filled ? value : (hint || "未確定");
-  const long = filled && value.length > 80;
+  const long = filled && value.length > 220;
 
   const startEdit = () => { setDraft(value); setEditing(true); };
   const save = () => { onSave?.(draft); setEditing(false); setOpen(false); };
 
   return (
-    <div style={{ border: filled ? `1px solid ${color}66` : `1px dashed ${T.inkFaint}`, background: filled ? `${color}0D` : T.offWhite, borderRadius: 8, padding: "7px 9px", height: open || editing ? "auto" : CELL_H, display: "flex", flexDirection: "column", gap: 3, overflow: "hidden" }}>
+    <div style={{ border: filled ? `1px solid ${color}66` : `1px dashed ${T.inkFaint}`, background: filled ? `${color}0D` : T.offWhite, borderRadius: 8, padding: "7px 9px", height: open || editing ? "auto" : (fill ? "100%" : CELL_H), minHeight: fill ? CELL_H : undefined, display: "flex", flexDirection: "column", gap: 3, overflow: "hidden" }}>
       <div style={{ fontSize: 10, fontWeight: 800, color: filled ? color : T.inkFaint }}>{label}</div>
 
       {editing ? (
@@ -95,29 +95,31 @@ export default function VdsCanvas({ concept, conceptConfirmed, strategy, sustain
     <div style={{ overflowX: "auto", paddingBottom: 6 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "stretch", minWidth: 1080 }}>
         {/* コンセプト */}
-        <div style={{ flex: "3 1 360px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12 }}>
+        <div style={{ flex: "3 1 380px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12, display: "flex", flexDirection: "column" }}>
           <BlockHeader title="コンセプト" question="誰の・どの課題に・何を提供するのか？" color={cBlue} />
-          <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 1fr", gap: 6 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 1fr", gridTemplateRows: "auto 1fr 1fr 1fr 1fr", gap: 6, flex: 1 }}>
             <div />
             <div style={{ fontSize: 10, fontWeight: 800, color: cBlue, textAlign: "center" }}>ミクロ</div>
             <div style={{ fontSize: 10, fontWeight: 800, color: cOrange, textAlign: "center" }}>マクロ</div>
 
             <RowLabel>顧客</RowLabel>
-            <Cell label="n1顧客" value={cv("customer", "n1Customer")} color={cBlue} hint="リアルなn1顧客" onSave={ec("n1Customer")} />
-            <Cell label="ターゲット顧客" value={cv("customer", "customer")} color={cOrange} hint="十分な市場規模の顧客" onSave={ec("customer")} />
+            <Cell label="n1顧客" value={cv("customer", "n1Customer")} color={cBlue} hint="リアルなn1顧客" onSave={ec("n1Customer")} fill />
+            <Cell label="ターゲット顧客" value={cv("customer", "customer")} color={cOrange} hint="十分な市場規模の顧客" onSave={ec("customer")} fill />
 
             <RowLabel>課題</RowLabel>
-            <Cell label="超具体的な課題" value={cv("issue", "microIssue")} color={cBlue} hint="共感できる超具体的な課題" onSave={ec("microIssue")} />
-            <Cell label="最大公約数的な課題" value={cv("issue", "macroIssue")} color={cOrange} hint="共感できる共通課題" onSave={ec("macroIssue")} />
+            <Cell label="超具体的な課題" value={cv("issue", "microIssue")} color={cBlue} hint="共感できる超具体的な課題" onSave={ec("microIssue")} fill />
+            <Cell label="最大公約数的な課題" value={cv("issue", "macroIssue")} color={cOrange} hint="共感できる共通課題" onSave={ec("macroIssue")} fill />
 
             <RowLabel>手法</RowLabel>
-            <div style={{ gridColumn: "2 / 4" }}>
-              <Cell label="実現性のある手法（により）" value={cv("method", "method")} color={cBlue} hint="実現性のある手法" onSave={ec("method")} />
+            <div style={{ gridColumn: "2 / 4", display: "flex" }}>
+              <div style={{ flex: 1 }}>
+                <Cell label="実現性のある手法（により）" value={cv("method", "method")} color={cBlue} hint="実現性のある手法" onSave={ec("method")} fill />
+              </div>
             </div>
 
             <RowLabel>価値</RowLabel>
-            <Cell label="超具体的な価値" value={cv("value", "microValue")} color={cBlue} hint="渇望される超具体的な価値" onSave={ec("microValue")} />
-            <Cell label="最大公約数的な価値" value={cv("value", "macroValue")} color={cOrange} hint="渇望される共通価値" onSave={ec("macroValue")} />
+            <Cell label="超具体的な価値" value={cv("value", "microValue")} color={cBlue} hint="渇望される超具体的な価値" onSave={ec("microValue")} fill />
+            <Cell label="最大公約数的な価値" value={cv("value", "macroValue")} color={cOrange} hint="渇望される共通価値" onSave={ec("macroValue")} fill />
           </div>
         </div>
 

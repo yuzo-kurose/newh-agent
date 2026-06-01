@@ -14,7 +14,7 @@ interface Props {
 
 type Draft = Partial<ConceptResult>;
 
-const VIEW: Record<ConceptElementKey, (p: { data: Draft; color: string }) => React.ReactElement> = {
+const VIEW: Record<ConceptElementKey, (p: { data: Draft; color: string; onEdit?: (field: keyof ConceptResult, value: string) => void }) => React.ReactElement> = {
   customer: CustomerView,
   issue: IssueView,
   method: MethodView,
@@ -93,6 +93,12 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
     }
   };
 
+  const onEditField = (field: keyof ConceptResult, value: string) => {
+    const merged: Draft = { ...draftRef.current, [field]: value };
+    setDraft(merged);
+    onChange(merged, confirmed);
+  };
+
   const CurrentView = VIEW[selected];
   const pastDrafts = (history[selected] ?? []).slice(0, -1);
 
@@ -139,7 +145,7 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
           </div>
         )}
 
-        {!busy && hasDraft && <CurrentView data={draft} color={color} />}
+        {!busy && hasDraft && <CurrentView data={draft} color={color} onEdit={onEditField} />}
 
         {!busy && !hasDraft && (
           <div style={{ fontSize: 14.5, color: T.inkMuted, lineHeight: 1.7, padding: "8px 0" }}>

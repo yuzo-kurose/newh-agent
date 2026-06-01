@@ -1,6 +1,8 @@
 "use client";
 import { Phase, T } from "../lib/constants";
 
+interface ProjectMeta { id: string; name: string; }
+
 interface Props {
   phases: Phase[];
   activePhase: number;
@@ -11,9 +13,16 @@ interface Props {
   completedTasks: Record<string, boolean>;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  projects: ProjectMeta[];
+  currentProjectId: string;
+  onSelectProject: (id: string) => void;
+  onCreateProject: () => void;
+  onRenameProject: (id: string) => void;
+  onDeleteProject: (id: string) => void;
 }
 
-export default function Sidebar({ phases, activePhase, activeView, onOpenContext, onOpenVds, setActivePhase, completedTasks, collapsed, onToggleCollapse }: Props) {
+export default function Sidebar({ phases, activePhase, activeView, onOpenContext, onOpenVds, setActivePhase, completedTasks, collapsed, onToggleCollapse, projects, currentProjectId, onSelectProject, onCreateProject, onRenameProject, onDeleteProject }: Props) {
+  const miniBtn = { flex: 1, padding: "4px 0", background: "transparent", border: `1px solid ${T.border}`, borderRadius: 6, color: T.inkMuted, fontSize: 10, fontWeight: 700, cursor: "pointer" } as const;
   return (
     <nav style={{ width:collapsed?52:248, background:T.white, borderRight:`1px solid ${T.border}`, flexShrink:0, display:"flex", flexDirection:"column", transition:"width 0.2s ease", overflowX:"hidden" }}>
       <button onClick={onToggleCollapse}
@@ -21,6 +30,26 @@ export default function Sidebar({ phases, activePhase, activeView, onOpenContext
         title={collapsed?"開く":"閉じる"}>
         {collapsed ? "›" : "‹"}
       </button>
+
+      {/* プロジェクト選択 */}
+      {collapsed ? (
+        <button onClick={onToggleCollapse} title="プロジェクトを選択（開く）"
+          style={{ padding:"12px 0", background:T.offWhite, border:"none", borderBottom:`1px solid ${T.border}`, cursor:"pointer", display:"flex", justifyContent:"center", fontSize:16 }}>🗂</button>
+      ) : (
+        <div style={{ padding:"10px 12px", borderBottom:`1px solid ${T.border}`, display:"flex", flexDirection:"column", gap:6 }}>
+          <div style={{ fontSize:10, fontWeight:800, color:T.inkFaint, letterSpacing:"0.04em" }}>プロジェクト</div>
+          <select value={currentProjectId} onChange={(e) => onSelectProject(e.target.value)}
+            style={{ width:"100%", padding:"7px 8px", border:`1.5px solid ${T.border}`, borderRadius:8, background:T.white, color:T.ink, fontSize:12, fontWeight:700, outline:"none", cursor:"pointer" }}>
+            {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <div style={{ display:"flex", gap:5 }}>
+            <button onClick={onCreateProject} style={miniBtn}>＋ 新規</button>
+            <button onClick={() => onRenameProject(currentProjectId)} style={miniBtn}>名称変更</button>
+            <button onClick={() => onDeleteProject(currentProjectId)} style={{ ...miniBtn, color:T.red, borderColor:`${T.red}55` }}>削除</button>
+          </div>
+        </div>
+      )}
+
       <div style={{ overflowY:"auto", flex:1 }}>
         <button onClick={onOpenContext} title={collapsed ? "プロジェクトコンテキスト" : ""}
           style={{ width:"100%", padding:collapsed?"12px 0":"11px 14px", background:activeView==="context"?T.offWhite:"transparent", border:"none", borderLeft:`3px solid ${activeView==="context"?T.ink:"transparent"}`, cursor:"pointer", textAlign:"left", display:"flex", flexDirection:collapsed?"column":"row", alignItems:collapsed?"center":"center", gap:collapsed?3:7, transition:"all 0.15s" }}>

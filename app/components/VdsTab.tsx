@@ -15,13 +15,13 @@ export interface VdsBlockResult {
 export type VdsResults = Record<string, VdsBlockResult>;
 
 interface Props {
+  projectId: string;
   projectContext: string;
   results: VdsResults;
   onPersist: (results: VdsResults) => void;
 }
 
 const DOWNSTREAM = ["strategy", "sustainability", "revenue", "project"];
-const BRIEF_STORAGE_KEY = "newh-agent.vdsBrief";
 
 const BLOCK_FIELD_LABELS: Record<string, Record<string, string>> = {
   strategy: { competitor: "競合代替品", chosenReason: "選ばれる理由", keepChosenReason: "選ばれ続ける理由", activity: "活動・機能・仕組み", ownResource: "自社リソース", partnerResource: "パートナーリソース", channel: "チャネル・提供手段" },
@@ -57,15 +57,16 @@ function ReviewBadge({ review }: { review: ReviewResult }) {
   );
 }
 
-export default function VdsTab({ projectContext, results, onPersist }: Props) {
+export default function VdsTab({ projectId, projectContext, results, onPersist }: Props) {
+  const briefKey = `newh-agent.p.${projectId}.vdsBrief`;
   const [brief, setBrief] = useState<string>(() => {
     if (typeof window === "undefined") return projectContext;
-    return window.localStorage.getItem(BRIEF_STORAGE_KEY) ?? projectContext;
+    return window.localStorage.getItem(briefKey) ?? projectContext;
   });
 
   const updateBrief = (value: string) => {
     setBrief(value);
-    if (typeof window !== "undefined") window.localStorage.setItem(BRIEF_STORAGE_KEY, value);
+    if (typeof window !== "undefined") window.localStorage.setItem(briefKey, value);
   };
   const [resultsState, setResultsState] = useState<VdsResults>(results);
   const [runtime, setRuntime] = useState<Record<string, BlockRuntime>>({});

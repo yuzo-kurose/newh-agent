@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import {
   T, ConceptResult, ConceptScore, ConceptViewpointKey, CONCEPT_VIEWPOINTS,
   PROBLEM_QUALITY_FACTORS, ISSUE_QUALITY_FACTORS, GrowthStoryPhase, TargetSegment, MethodValueIdea,
@@ -10,12 +10,34 @@ export function scoreColor(score: number): string {
   return `rgba(26,122,60,${0.06 + (s / 5) * 0.22})`;
 }
 
-export const Field = ({ label, value, color }: { label: string; value?: string; color: string }) => (
-  <div style={{ background: T.offWhite, border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 12px" }}>
-    <div style={{ fontSize: 12, fontWeight: 800, color, letterSpacing: "0.04em", marginBottom: 4 }}>{label}</div>
-    <div style={{ fontSize: 14.5, lineHeight: 1.65, color: T.ink, whiteSpace: "pre-wrap" }}>{value || "—"}</div>
-  </div>
-);
+export function Field({ label, value, color, onSave }: { label: string; value?: string; color: string; onSave?: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+  const start = () => { setDraft(value ?? ""); setEditing(true); };
+  const save = () => { onSave?.(draft); setEditing(false); };
+  return (
+    <div style={{ background: T.offWhite, border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 12px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color, letterSpacing: "0.04em" }}>{label}</span>
+        {onSave && !editing && (
+          <button onClick={start} style={{ marginLeft: "auto", background: "transparent", border: "none", color: T.inkMuted, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}>✎ 編集</button>
+        )}
+      </div>
+      {editing ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <textarea value={draft} onChange={(e) => setDraft(e.target.value)} autoFocus
+            style={{ width: "100%", minHeight: 72, padding: "8px 10px", border: `1.5px solid ${color}`, borderRadius: 6, fontSize: 14, lineHeight: 1.6, outline: "none", resize: "vertical", fontFamily: "inherit", color: T.ink, background: T.white }} />
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={save} style={{ background: color, border: "none", borderRadius: 6, color: T.white, fontSize: 13, fontWeight: 700, padding: "4px 12px", cursor: "pointer" }}>保存</button>
+            <button onClick={() => setEditing(false)} style={{ background: "transparent", border: `1px solid ${T.border}`, borderRadius: 6, color: T.inkMuted, fontSize: 13, padding: "4px 12px", cursor: "pointer" }}>取消</button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 14.5, lineHeight: 1.65, color: T.ink, whiteSpace: "pre-wrap" }}>{value || "—"}</div>
+      )}
+    </div>
+  );
+}
 
 // 任意のJSON値を読みやすく再帰描画する（コンセプト以外のブロック用）。
 export function RenderValue({ value }: { value: unknown }): React.ReactElement {
@@ -63,16 +85,18 @@ export function QualityFactors({ factors, scores }: { factors: readonly { key: s
 
 // ====== 要素別ビュー（スタジオの各ステップ・完成版の両方で使う） ======
 
-export function CustomerView({ data, color }: { data: Partial<ConceptResult>; color: string }) {
+type EditFn = (field: keyof ConceptResult, value: string) => void;
+
+export function CustomerView({ data, color, onEdit }: { data: Partial<ConceptResult>; color: string; onEdit?: EditFn }) {
   const segments: TargetSegment[] = Array.isArray(data.targetSegments) ? data.targetSegments : [];
   const story: GrowthStoryPhase[] = Array.isArray(data.growthStory) ? data.growthStory : [];
   const viewpoints: string[] = Array.isArray(data.primaryViewpoints) ? data.primaryViewpoints : [];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <Field label="誰（顧客）" value={data.customer} color={color} />
+      <Field label="誰（顧客）" value={data.customer} color={color} onSave={onEdit && ((v) => onEdit("customer", v))} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-        <Field label="🔬 ミクロの確信（n1の実在顧客）" value={data.n1Customer} color={T.blue} />
-        <Field label="🌐 マクロの確証（市場サイズ）" value={data.marketSize} color={T.orange} />
+        <Field label="🔬 ミクロの確信（n1の実在顧客）" value={data.n1Customer} color={T.blue} onSave={onEdit && ((v) => onEdit("n1Customer", v))} />
+        <Field label="🌐 マクロの確証（市場サイズ）" value={data.marketSize} color={T.orange} onSave={onEdit && ((v) => onEdit("marketSize", v))} />
       </div>
       {viewpoints.length > 0 && (
         <div>
@@ -153,21 +177,21 @@ export function CustomerView({ data, color }: { data: Partial<ConceptResult>; co
   );
 }
 
-export function IssueView({ data, color }: { data: Partial<ConceptResult>; color: string }) {
+export function IssueView({ data, color, onEdit }: { data: Partial<ConceptResult>; color: string; onEdit?: EditFn }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div>
-        <Field label="問題（解決が望まれる状態）" value={data.problem} color={color} />
+        <Field label="問題（解決が望まれる状態）" value={data.problem} color={color} onSave={onEdit && ((v) => onEdit("problem", v))} />
         <div style={{ marginTop: 6 }}><QualityFactors factors={PROBLEM_QUALITY_FACTORS} scores={data.problemQuality} /></div>
       </div>
       <div>
-        <Field label="課題（据える背景要因）" value={data.pain} color={color} />
+        <Field label="課題（据える背景要因）" value={data.pain} color={color} onSave={onEdit && ((v) => onEdit("pain", v))} />
         <div style={{ marginTop: 6 }}><QualityFactors factors={ISSUE_QUALITY_FACTORS} scores={data.issueQuality} /></div>
       </div>
       {(data.microIssue || data.macroIssue) && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-          <Field label="超具体的な課題（ミクロ）" value={data.microIssue} color={T.blue} />
-          <Field label="最大公約数的な課題（マクロ）" value={data.macroIssue} color={T.orange} />
+          <Field label="超具体的な課題（ミクロ）" value={data.microIssue} color={T.blue} onSave={onEdit && ((v) => onEdit("microIssue", v))} />
+          <Field label="最大公約数的な課題（マクロ）" value={data.macroIssue} color={T.orange} onSave={onEdit && ((v) => onEdit("macroIssue", v))} />
         </div>
       )}
       {data.structureMethod && (
@@ -179,11 +203,11 @@ export function IssueView({ data, color }: { data: Partial<ConceptResult>; color
   );
 }
 
-export function MethodView({ data, color }: { data: Partial<ConceptResult>; color: string }) {
+export function MethodView({ data, color, onEdit }: { data: Partial<ConceptResult>; color: string; onEdit?: EditFn }) {
   const ideas: MethodValueIdea[] = Array.isArray(data.ideaApproaches) ? data.ideaApproaches : [];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <Field label="手法（顧客に何を提供するか）" value={data.method} color={color} />
+      <Field label="手法（顧客に何を提供するか）" value={data.method} color={color} onSave={onEdit && ((v) => onEdit("method", v))} />
       {Array.isArray(data.methodFunctions) && data.methodFunctions.length > 0 && (
         <div>
           <div style={{ fontSize: 11.5, fontWeight: 800, color: T.inkFaint, marginBottom: 3 }}>機能（具体）</div>
@@ -210,7 +234,7 @@ export function MethodView({ data, color }: { data: Partial<ConceptResult>; colo
   );
 }
 
-export function ValueView({ data, color, showOneLine = true }: { data: Partial<ConceptResult>; color: string; showOneLine?: boolean }) {
+export function ValueView({ data, color, showOneLine = true, onEdit }: { data: Partial<ConceptResult>; color: string; showOneLine?: boolean; onEdit?: EditFn }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {showOneLine && data.oneLineConcept && (
@@ -218,11 +242,11 @@ export function ValueView({ data, color, showOneLine = true }: { data: Partial<C
           {data.oneLineConcept}
         </div>
       )}
-      <Field label="価値（顧客が何を得るか・before→after）" value={data.value} color={color} />
+      <Field label="価値（顧客が何を得るか・before→after）" value={data.value} color={color} onSave={onEdit && ((v) => onEdit("value", v))} />
       {(data.microValue || data.macroValue) && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
-          <Field label="超具体的な価値（ミクロ）" value={data.microValue} color={T.blue} />
-          <Field label="最大公約数的な価値（マクロ）" value={data.macroValue} color={T.orange} />
+          <Field label="超具体的な価値（ミクロ）" value={data.microValue} color={T.blue} onSave={onEdit && ((v) => onEdit("microValue", v))} />
+          <Field label="最大公約数的な価値（マクロ）" value={data.macroValue} color={T.orange} onSave={onEdit && ((v) => onEdit("macroValue", v))} />
         </div>
       )}
       {Array.isArray(data.valueExperiences) && data.valueExperiences.length > 0 && (
