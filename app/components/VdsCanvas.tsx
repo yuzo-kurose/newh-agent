@@ -108,7 +108,7 @@ export default function VdsCanvas({ concept, conceptConfirmed, strategy, sustain
         {/* コンセプト */}
         <div style={{ flex: "3 1 380px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12, display: "flex", flexDirection: "column" }}>
           <BlockHeader title="コンセプト" question="誰の・どの課題に・何を提供するのか？" color={cBlue} />
-          <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 1fr", gridTemplateRows: fullscreen ? undefined : "auto 1fr 1fr 1fr 1fr", gap: 6, flex: 1 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 1fr", gridTemplateRows: fullscreen ? undefined : "auto 1fr 1fr 1fr 1fr", gap: 6, flex: fullscreen ? "0 0 auto" : 1, alignItems: fullscreen ? "start" : undefined, alignContent: fullscreen ? "start" : undefined }}>
             <div />
             <div style={{ fontSize: 10, fontWeight: 800, color: cBlue, textAlign: "center" }}>ミクロ</div>
             <div style={{ fontSize: 10, fontWeight: 800, color: cOrange, textAlign: "center" }}>マクロ</div>
