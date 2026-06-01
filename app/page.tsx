@@ -142,10 +142,10 @@ export default function NEWhAgent() {
 
       {/* Header */}
       <header style={{ background:T.white, borderBottom:`1px solid ${T.border}`, padding:"12px 20px", display:"flex", alignItems:"center", gap:14, flexShrink:0, boxShadow:"0 1px 0 rgba(0,0,0,0.04)" }}>
-        <div style={{ width:28, height:28, background:T.ink, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:13, color:T.white }}>N</div>
+        <div style={{ width:28, height:28, background:T.ink, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:15, color:T.white }}>N</div>
         <div>
-          <div style={{ fontSize:14, fontWeight:800, color:T.ink, letterSpacing:"-0.02em" }}>NEWh 新規事業創出支援</div>
-          <div style={{ fontSize:10, color:T.inkFaint }}>Innovation Design & Studio</div>
+          <div style={{ fontSize:16, fontWeight:800, color:T.ink, letterSpacing:"-0.02em" }}>NEWh 新規事業創出支援</div>
+          <div style={{ fontSize:12, color:T.inkFaint }}>Innovation Design & Studio</div>
         </div>
       </header>
 
@@ -160,10 +160,10 @@ export default function NEWhAgent() {
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                 <div style={{ width:4, height:20, background:T.ink, borderRadius:2 }} />
                 <div>
-                  <div style={{ fontSize:15, fontWeight:800, color:T.ink, letterSpacing:"-0.02em" }}>
+                  <div style={{ fontSize:17, fontWeight:800, color:T.ink, letterSpacing:"-0.02em" }}>
                     {activeView==="vds" ? "VDS設計" : "プロジェクトコンテキスト"}
                   </div>
-                  <div style={{ fontSize:11, color:T.inkMuted, marginTop:1 }}>
+                  <div style={{ fontSize:13, color:T.inkMuted, marginTop:1 }}>
                     {activeView==="vds" ? "VDSの各ブロックを生成→レビュー→リトライで作成する。" : "仮説生成時に読み込む案件情報を蓄積する。"}
                   </div>
                 </div>
@@ -176,12 +176,12 @@ export default function NEWhAgent() {
               const labels = { tasks:"タスク", checks:"チェック", chat:"AI相談" };
               return (
                 <button key={tab} onClick={() => setActiveTab(tab)}
-                  style={{ padding:"10px 20px", background:"transparent", border:"none", borderBottom:activeTab===tab?`2px solid ${phase.band}`:"2px solid transparent", color:activeTab===tab?T.ink:T.inkFaint, cursor:"pointer", fontSize:13, fontWeight:activeTab===tab?700:400, transition:"all 0.15s" }}>
+                  style={{ padding:"10px 20px", background:"transparent", border:"none", borderBottom:activeTab===tab?`2px solid ${phase.band}`:"2px solid transparent", color:activeTab===tab?T.ink:T.inkFaint, cursor:"pointer", fontSize:15, fontWeight:activeTab===tab?700:400, transition:"all 0.15s" }}>
                   {labels[tab]}
                 </button>
               );
             })}
-            <button onClick={() => setShowGenerator(true)} style={{ marginLeft:"auto", marginRight:16, padding:"7px 13px", background:T.ink, border:"none", borderRadius:8, color:T.white, fontSize:12, fontWeight:700, cursor:"pointer" }}>
+            <button onClick={() => setShowGenerator(true)} style={{ marginLeft:"auto", marginRight:16, padding:"7px 13px", background:T.ink, border:"none", borderRadius:8, color:T.white, fontSize:14, fontWeight:700, cursor:"pointer" }}>
               タスク仮説生成 →
             </button>
           </div>}

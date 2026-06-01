@@ -119,45 +119,45 @@ export default function GeneratorModal({ phase, projectContext, onApply, onClose
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(10,10,8,0.6)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "20px 16px" }}>
-      <div style={{ width: "100%", maxWidth: 920, background: T.offWhite, borderRadius: 16, overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.18)" }}>
+      <div style={{ width: "100%", maxWidth: 1100, background: T.offWhite, borderRadius: 16, overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.18)" }}>
         <div style={{ background: T.white, borderBottom: `1px solid ${T.border}`, padding: "18px 22px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: T.ink, letterSpacing: "-0.02em" }}>タスク仮説 生成</div>
-            <div style={{ fontSize: 11, color: T.inkMuted, marginTop: 2 }}>{phase.label} のタスク仮説を作成。不足情報があれば追加質問します。</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: T.ink, letterSpacing: "-0.02em" }}>タスク仮説 生成</div>
+            <div style={{ fontSize: 13, color: T.inkMuted, marginTop: 2 }}>{phase.label} のタスク仮説を作成。不足情報があれば追加質問します。</div>
           </div>
-          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, background: T.paper, border: `1px solid ${T.border}`, color: T.inkMuted, cursor: "pointer", fontSize: 14 }}>x</button>
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, background: T.paper, border: `1px solid ${T.border}`, color: T.inkMuted, cursor: "pointer", fontSize: 16 }}>x</button>
         </div>
 
         <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
           <Card style={{ padding: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: T.inkFaint, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>案件情報</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.inkFaint, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>案件情報</div>
             <textarea
               value={brief}
               onChange={(e) => setBrief(e.target.value)}
               placeholder="このフェーズの仮説生成に追加したい情報を書いてください。保存済みのプロジェクトコンテキストも併せて読み込みます。"
-              style={{ width: "100%", minHeight: 108, padding: "10px 12px", background: T.offWhite, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 13, lineHeight: 1.7, resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+              style={{ width: "100%", minHeight: 108, padding: "10px 12px", background: T.offWhite, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 15, lineHeight: 1.7, resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
             />
             <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 11, color: T.inkFaint, alignSelf: "center" }}>記入例:</span>
+              <span style={{ fontSize: 13, color: T.inkFaint, alignSelf: "center" }}>記入例:</span>
               {examples.map((ex, i) => (
-                <button key={i} onClick={() => setBrief(ex)} style={{ padding: "3px 10px", background: T.paper, border: `1px solid ${T.border}`, borderRadius: 20, color: T.inkMuted, cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}>例{i + 1}</button>
+                <button key={i} onClick={() => setBrief(ex)} style={{ padding: "3px 10px", background: T.paper, border: `1px solid ${T.border}`, borderRadius: 20, color: T.inkMuted, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>例{i + 1}</button>
               ))}
             </div>
           </Card>
 
           {result?.questions.length ? (
             <Card style={{ padding: 16, borderColor: result.status === "needs_info" ? "#F2C48B" : T.border }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: T.orange, marginBottom: 10 }}>追加すると精度が上がる情報</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: T.orange, marginBottom: 10 }}>追加すると精度が上がる情報</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {result.questions.map((q) => (
                   <div key={q.id}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: T.ink, lineHeight: 1.6 }}>{q.question}</div>
-                    <div style={{ fontSize: 11, color: T.inkFaint, marginBottom: 5 }}>{q.reason}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: T.ink, lineHeight: 1.6 }}>{q.question}</div>
+                    <div style={{ fontSize: 13, color: T.inkFaint, marginBottom: 5 }}>{q.reason}</div>
                     <input
                       value={answers[q.id] ?? ""}
                       onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
                       placeholder="分かる範囲で入力"
-                      style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.offWhite, fontSize: 12, color: T.ink, outline: "none" }}
+                      style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.offWhite, fontSize: 14, color: T.ink, outline: "none" }}
                     />
                   </div>
                 ))}
@@ -168,20 +168,20 @@ export default function GeneratorModal({ phase, projectContext, onApply, onClose
           <button
             onClick={generate}
             disabled={loading || !hasSourceContext}
-            style={{ padding: "13px 0", background: loading || !hasSourceContext ? T.paper : T.ink, border: "none", borderRadius: 10, color: loading || !hasSourceContext ? T.inkFaint : T.white, fontSize: 14, fontWeight: 700, cursor: loading || !hasSourceContext ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+            style={{ padding: "13px 0", background: loading || !hasSourceContext ? T.paper : T.ink, border: "none", borderRadius: 10, color: loading || !hasSourceContext ? T.inkFaint : T.white, fontSize: 16, fontWeight: 700, cursor: loading || !hasSourceContext ? "not-allowed" : "pointer", fontFamily: "inherit" }}
           >
             {loading ? "仮説を生成中..." : result?.questions.length ? "追加情報を反映して再生成する" : "タスク仮説を生成する"}
           </button>
 
-          {error && <div style={{ padding: "10px 14px", background: T.redLight, border: "1px solid #FCCACA", borderRadius: 8, fontSize: 12, color: T.red }}>{error}</div>}
+          {error && <div style={{ padding: "10px 14px", background: T.redLight, border: "1px solid #FCCACA", borderRadius: 8, fontSize: 14, color: T.red }}>{error}</div>}
 
           {(loading || streamText) && (
             <Card style={{ padding: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", marginBottom: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: T.ink }}>リアルタイム生成</div>
-                <div style={{ fontSize: 11, color: loading ? T.blue : T.green, fontWeight: 700 }}>{loading ? "STREAMING" : "DONE"}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: T.ink }}>リアルタイム生成</div>
+                <div style={{ fontSize: 13, color: loading ? T.blue : T.green, fontWeight: 700 }}>{loading ? "STREAMING" : "DONE"}</div>
               </div>
-              <pre style={{ maxHeight: 220, overflowY: "auto", whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0, padding: 12, background: T.offWhite, border: `1px solid ${T.borderLight}`, borderRadius: 8, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", fontSize: 11, lineHeight: 1.6, color: T.inkLight }}>
+              <pre style={{ maxHeight: 220, overflowY: "auto", whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0, padding: 12, background: T.offWhite, border: `1px solid ${T.borderLight}`, borderRadius: 8, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", fontSize: 13, lineHeight: 1.6, color: T.inkLight }}>
                 {streamText || "接続中..."}
               </pre>
             </Card>
@@ -192,25 +192,25 @@ export default function GeneratorModal({ phase, projectContext, onApply, onClose
               <Card style={{ padding: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 8 }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>案件理解</div>
-                    <div style={{ fontSize: 12, color: T.inkMuted, lineHeight: 1.7, marginTop: 4 }}>{result.summary}</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>案件理解</div>
+                    <div style={{ fontSize: 14, color: T.inkMuted, lineHeight: 1.7, marginTop: 4 }}>{result.summary}</div>
                   </div>
-                  <span style={{ padding: "3px 9px", borderRadius: 20, background: result.status === "ready" ? T.greenLight : T.orangeLight, color: result.status === "ready" ? T.green : T.orange, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                  <span style={{ padding: "3px 9px", borderRadius: 20, background: result.status === "ready" ? T.greenLight : T.orangeLight, color: result.status === "ready" ? T.green : T.orange, fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
                     {result.status === "ready" ? "READY" : "要追加情報"}
                   </span>
                 </div>
-              <div style={{ fontSize: 11, color: T.inkFaint }}>生成済み: {hypothesisCount}件 / {phase.tasks.length}件</div>
+              <div style={{ fontSize: 13, color: T.inkFaint }}>生成済み: {hypothesisCount}件 / {phase.tasks.length}件</div>
             </Card>
 
               <Card style={{ padding: 12, borderLeft: `3px solid ${phase.band}` }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: T.ink, marginBottom: 6 }}>{phase.shortLabel}</div>
-                <div style={{ fontSize: 11, color: T.inkMuted }}>{phase.tasks.filter((task) => result.hypotheses[`${phase.id}-${task.id}`]).length}/{phase.tasks.length} タスクの仮説を生成</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: T.ink, marginBottom: 6 }}>{phase.shortLabel}</div>
+                <div style={{ fontSize: 13, color: T.inkMuted }}>{phase.tasks.filter((task) => result.hypotheses[`${phase.id}-${task.id}`]).length}/{phase.tasks.length} タスクの仮説を生成</div>
               </Card>
 
               <button
                 onClick={() => canApply && onApply(result.hypotheses, combinedBrief)}
                 disabled={!canApply}
-                style={{ padding: "12px 0", background: canApply ? T.green : T.paper, border: "none", borderRadius: 10, color: canApply ? T.white : T.inkFaint, fontSize: 13, fontWeight: 800, cursor: canApply ? "pointer" : "not-allowed", fontFamily: "inherit" }}
+                style={{ padding: "12px 0", background: canApply ? T.green : T.paper, border: "none", borderRadius: 10, color: canApply ? T.white : T.inkFaint, fontSize: 15, fontWeight: 800, cursor: canApply ? "pointer" : "not-allowed", fontFamily: "inherit" }}
               >
                 生成した仮説をタスクに反映する
               </button>

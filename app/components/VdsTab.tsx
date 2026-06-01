@@ -41,16 +41,16 @@ function ReviewBadge({ review }: { review: ReviewResult }) {
   return (
     <div style={{ background: bg, border: `1px solid ${c}33`, borderRadius: 8, padding: "8px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 800, color: c }}>レビュー {review.grade} / {review.score}点</span>
-        <span style={{ fontSize: 10, color: c }}>{pass ? "合格" : "要改善"}</span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: c }}>レビュー {review.grade} / {review.score}点</span>
+        <span style={{ fontSize: 12, color: c }}>{pass ? "合格" : "要改善"}</span>
       </div>
-      {review.goodPoint && <div style={{ fontSize: 11, color: T.inkLight }}>👍 {review.goodPoint}</div>}
+      {review.goodPoint && <div style={{ fontSize: 13, color: T.inkLight }}>👍 {review.goodPoint}</div>}
       {Array.isArray(review.issues) && review.issues.length > 0 && (
         <ul style={{ margin: 0, paddingLeft: 16 }}>
-          {review.issues.map((iss, i) => <li key={i} style={{ fontSize: 11, color: T.inkLight, lineHeight: 1.5 }}>{iss}</li>)}
+          {review.issues.map((iss, i) => <li key={i} style={{ fontSize: 13, color: T.inkLight, lineHeight: 1.5 }}>{iss}</li>)}
         </ul>
       )}
-      {review.mustFix && <div style={{ fontSize: 11, color: c, fontWeight: 600 }}>最重要: {review.mustFix}</div>}
+      {review.mustFix && <div style={{ fontSize: 13, color: c, fontWeight: 600 }}>最重要: {review.mustFix}</div>}
     </div>
   );
 }
@@ -108,22 +108,22 @@ export default function VdsTab({ projectContext, results, onPersist }: Props) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 980 }}>
-      <div style={{ fontSize: 12, color: T.inkMuted, lineHeight: 1.7 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1280 }}>
+      <div style={{ fontSize: 14, color: T.inkMuted, lineHeight: 1.7 }}>
         プロジェクトコンテキストを起点に、まず<b>コンセプト</b>を「顧客 → 課題 → 手法 → 価値」の順に提案します。各要素はあなたのフィードバックを反映して何度でも再検証でき、確定した内容が次の要素に引き継がれます。コンセプト確定後、後続のVDSブロックを生成できます。
       </div>
 
       <div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: T.inkMuted, marginBottom: 4 }}>案件ブリーフ（プロジェクトコンテキストから引用・編集可）</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: T.inkMuted, marginBottom: 4 }}>案件ブリーフ（プロジェクトコンテキストから引用・編集可）</div>
         <textarea value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="例：大手食品メーカー。50代向けの健康食品の新規事業を立ち上げたい。予算は半年・チーム3名。"
-          style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 13, lineHeight: 1.6, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
+          style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 15, lineHeight: 1.6, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
       </div>
 
       {/* コンセプト・スタジオ */}
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-          <span style={{ width: 24, height: 24, borderRadius: 6, background: `${AGENTS.concept.color}18`, color: AGENTS.concept.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>{AGENTS.concept.icon}</span>
-          <span style={{ fontSize: 14, fontWeight: 800, color: T.ink }}>ブロック1：コンセプト</span>
+          <span style={{ width: 24, height: 24, borderRadius: 6, background: `${AGENTS.concept.color}18`, color: AGENTS.concept.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{AGENTS.concept.icon}</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>ブロック1：コンセプト</span>
         </div>
         <ConceptStudio brief={brief} color={AGENTS.concept.color} initialData={conceptData} initialConfirmed={conceptConfirmed} onChange={onConceptChange} />
       </div>
@@ -131,13 +131,13 @@ export default function VdsTab({ projectContext, results, onPersist }: Props) {
       {/* 後続ブロック */}
       <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 14, fontWeight: 800, color: T.ink }}>後続ブロック（戦略・持続・収支・PJ設計）</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>後続ブロック（戦略・持続・収支・PJ設計）</span>
           <button onClick={generateDownstream} disabled={running || !conceptData}
-            style={{ marginLeft: "auto", padding: "8px 14px", background: running || !conceptData ? T.paper : T.ink, border: "none", borderRadius: 8, color: running || !conceptData ? T.inkFaint : T.white, fontSize: 12, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer" }}>
+            style={{ marginLeft: "auto", padding: "8px 14px", background: running || !conceptData ? T.paper : T.ink, border: "none", borderRadius: 8, color: running || !conceptData ? T.inkFaint : T.white, fontSize: 14, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer" }}>
             後続ブロックを生成 →
           </button>
         </div>
-        {!conceptData && <div style={{ fontSize: 11.5, color: T.inkFaint, marginBottom: 8 }}>※ まずコンセプトを生成・確定してください（少なくとも顧客の案が必要です）。</div>}
+        {!conceptData && <div style={{ fontSize: 13.5, color: T.inkFaint, marginBottom: 8 }}>※ まずコンセプトを生成・確定してください（少なくとも顧客の案が必要です）。</div>}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {DOWNSTREAM.map((id) => {
@@ -149,20 +149,20 @@ export default function VdsTab({ projectContext, results, onPersist }: Props) {
             return (
               <div key={id} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${T.borderLight}` }}>
-                  <span style={{ width: 24, height: 24, borderRadius: 6, background: `${agent.color}18`, color: agent.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>{agent.icon}</span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{agent.label}</span>
-                  <span style={{ marginLeft: "auto", fontSize: 11, color: phase === "error" ? T.red : phase === "done" ? T.green : T.inkMuted }}>
+                  <span style={{ width: 24, height: 24, borderRadius: 6, background: `${agent.color}18`, color: agent.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{agent.icon}</span>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{agent.label}</span>
+                  <span style={{ marginLeft: "auto", fontSize: 13, color: phase === "error" ? T.red : phase === "done" ? T.green : T.inkMuted }}>
                     {PHASE_LABEL[phase]}{busy && rt?.attempt ? `（試行${rt.attempt}）` : ""}
                   </span>
                 </div>
                 <div style={{ padding: "12px 14px" }}>
-                  {phase === "error" && <div style={{ fontSize: 12, color: T.red }}>⚠ {rt?.error}</div>}
+                  {phase === "error" && <div style={{ fontSize: 14, color: T.red }}>⚠ {rt?.error}</div>}
                   {busy && (
-                    <div style={{ fontSize: 11, color: T.inkFaint, fontFamily: "monospace", whiteSpace: "pre-wrap", maxHeight: 90, overflow: "hidden", lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 13, color: T.inkFaint, fontFamily: "monospace", whiteSpace: "pre-wrap", maxHeight: 90, overflow: "hidden", lineHeight: 1.5 }}>
                       {rt?.streamText ? rt.streamText.slice(-400) : "生成しています…"}
                     </div>
                   )}
-                  {!busy && !res && phase !== "error" && <div style={{ fontSize: 12, color: T.inkFaint }}>未生成です。</div>}
+                  {!busy && !res && phase !== "error" && <div style={{ fontSize: 14, color: T.inkFaint }}>未生成です。</div>}
                   {!busy && res && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       {BLOCK_FIELD_LABELS[id]

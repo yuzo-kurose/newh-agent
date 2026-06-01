@@ -45,16 +45,16 @@ export default function ChatTab({ phase }: { phase: Phase }) {
         {messages.map((msg, i) => (
           <div key={i} style={{ display:"flex", justifyContent:msg.role==="user"?"flex-end":"flex-start" }}>
             {msg.role==="assistant" && (
-              <div style={{ width:26, height:26, background:T.ink, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, color:T.white, flexShrink:0, marginRight:8, marginTop:2 }}>N</div>
+              <div style={{ width:26, height:26, background:T.ink, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:900, color:T.white, flexShrink:0, marginRight:8, marginTop:2 }}>N</div>
             )}
-            <div style={{ maxWidth:"78%", padding:"10px 14px", borderRadius:msg.role==="user"?"14px 4px 14px 14px":"4px 14px 14px 14px", background:msg.role==="user"?T.ink:T.white, border:msg.role==="user"?"none":`1px solid ${T.border}`, fontSize:13, lineHeight:1.7, color:msg.role==="user"?T.white:T.ink, whiteSpace:"pre-wrap" }}>
+            <div style={{ maxWidth:"88%", padding:"10px 14px", borderRadius:msg.role==="user"?"14px 4px 14px 14px":"4px 14px 14px 14px", background:msg.role==="user"?T.ink:T.white, border:msg.role==="user"?"none":`1px solid ${T.border}`, fontSize:15, lineHeight:1.7, color:msg.role==="user"?T.white:T.ink, whiteSpace:"pre-wrap" }}>
               {msg.content}
             </div>
           </div>
         ))}
         {loading && (
           <div style={{ display:"flex", gap:8 }}>
-            <div style={{ width:26, height:26, background:T.ink, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, color:T.white }}>N</div>
+            <div style={{ width:26, height:26, background:T.ink, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:900, color:T.white }}>N</div>
             <div style={{ background:T.white, border:`1px solid ${T.border}`, borderRadius:"4px 14px 14px 14px", padding:"10px 14px", display:"flex", gap:4, alignItems:"center" }}>
               {[0,1,2].map(j => <div key={j} style={{ width:5, height:5, borderRadius:"50%", background:T.inkFaint, animation:`pulse 1.4s ${j*0.2}s infinite` }} />)}
             </div>
@@ -64,14 +64,14 @@ export default function ChatTab({ phase }: { phase: Phase }) {
       </div>
       <div style={{ display:"flex", gap:6, flexWrap:"wrap", flexShrink:0 }}>
         {quickPrompts.map(q => (
-          <button key={q} onClick={() => setInput(q)} style={{ padding:"4px 10px", background:T.white, border:`1px solid ${T.border}`, borderRadius:20, color:T.inkMuted, cursor:"pointer", fontSize:11 }}>{q}</button>
+          <button key={q} onClick={() => setInput(q)} style={{ padding:"4px 10px", background:T.white, border:`1px solid ${T.border}`, borderRadius:20, color:T.inkMuted, cursor:"pointer", fontSize:13 }}>{q}</button>
         ))}
       </div>
       <div style={{ display:"flex", gap:8, flexShrink:0 }}>
         <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()}
           placeholder={`${phase.label}について相談する...`}
-          style={{ flex:1, padding:"10px 14px", background:T.white, border:`1.5px solid ${T.border}`, borderRadius:8, color:T.ink, fontSize:13, outline:"none" }} />
-        <button onClick={send} disabled={loading||!input.trim()} style={{ padding:"10px 18px", background:loading||!input.trim()?T.paper:T.ink, border:"none", borderRadius:8, color:loading||!input.trim()?T.inkFaint:T.white, cursor:loading||!input.trim()?"not-allowed":"pointer", fontSize:13, fontWeight:600, transition:"all 0.15s" }}>
+          style={{ flex:1, padding:"10px 14px", background:T.white, border:`1.5px solid ${T.border}`, borderRadius:8, color:T.ink, fontSize:15, outline:"none" }} />
+        <button onClick={send} disabled={loading||!input.trim()} style={{ padding:"10px 18px", background:loading||!input.trim()?T.paper:T.ink, border:"none", borderRadius:8, color:loading||!input.trim()?T.inkFaint:T.white, cursor:loading||!input.trim()?"not-allowed":"pointer", fontSize:15, fontWeight:600, transition:"all 0.15s" }}>
           送信
         </button>
       </div>

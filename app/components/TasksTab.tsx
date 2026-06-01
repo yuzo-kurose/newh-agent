@@ -149,11 +149,11 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
               style={{ background:T.white, border:`1px solid ${selected?phase.band:done?phase.band+"55":T.border}`, borderRadius:10, padding:"12px 16px", cursor:"pointer", display:"flex", gap:12, alignItems:"flex-start", transition:"all 0.15s", opacity:done?0.72:1, boxShadow:selected?"0 6px 18px rgba(0,0,0,0.06)":"none" }}>
               <button onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }} aria-label={`${task.label}を${done ? "未完了" : "完了"}にする`}
                 style={{ width:18, height:18, borderRadius:4, border:`1.5px solid ${done?phase.band:T.border}`, background:done?phase.band:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:1, transition:"all 0.15s", cursor:"pointer", padding:0 }}>
-                {done && <span style={{ color:T.white, fontSize:10, fontWeight:900 }}>✓</span>}
+                {done && <span style={{ color:T.white, fontSize:12, fontWeight:900 }}>✓</span>}
               </button>
               <div style={{ minWidth:0 }}>
-                <div style={{ fontSize:13, fontWeight:done?400:600, color:T.ink, textDecoration:done?"line-through":"none", lineHeight:1.45 }}>{task.label}</div>
-                <div style={{ fontSize:11, color:T.inkMuted, marginTop:3, lineHeight:1.6 }}>{task.desc}</div>
+                <div style={{ fontSize:15, fontWeight:done?400:600, color:T.ink, textDecoration:done?"line-through":"none", lineHeight:1.45 }}>{task.label}</div>
+                <div style={{ fontSize:13, color:T.inkMuted, marginTop:3, lineHeight:1.6 }}>{task.desc}</div>
               </div>
             </div>
           );
@@ -165,17 +165,17 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
             <div style={{ width:4, height:18, background:phase.band, borderRadius:2 }} />
             <div style={{ minWidth:0 }}>
-              <div style={{ fontSize:11, fontWeight:800, color:T.inkFaint, textTransform:"uppercase", letterSpacing:"0.06em" }}>タスク仮説</div>
-              <div style={{ fontSize:14, fontWeight:800, color:T.ink, lineHeight:1.5 }}>{selectedTask.label}</div>
+              <div style={{ fontSize:13, fontWeight:800, color:T.inkFaint, textTransform:"uppercase", letterSpacing:"0.06em" }}>タスク仮説</div>
+              <div style={{ fontSize:16, fontWeight:800, color:T.ink, lineHeight:1.5 }}>{selectedTask.label}</div>
             </div>
           </div>
           <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap" }}>
-            <button onClick={startEdit} style={{ padding:"7px 11px", borderRadius:8, border:`1px solid ${T.border}`, background:T.offWhite, color:T.inkMuted, cursor:"pointer", fontSize:12, fontWeight:700 }}>仮説を編集</button>
-            <button onClick={generateSlide} disabled={slideLoading} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:slideLoading?T.paper:phase.band, color:slideLoading?T.inkFaint:T.white, cursor:slideLoading?"not-allowed":"pointer", fontSize:12, fontWeight:800 }}>{slideLoading ? "生成中..." : "スライド生成"}</button>
+            <button onClick={startEdit} style={{ padding:"7px 11px", borderRadius:8, border:`1px solid ${T.border}`, background:T.offWhite, color:T.inkMuted, cursor:"pointer", fontSize:14, fontWeight:700 }}>仮説を編集</button>
+            <button onClick={generateSlide} disabled={slideLoading} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:slideLoading?T.paper:phase.band, color:slideLoading?T.inkFaint:T.white, cursor:slideLoading?"not-allowed":"pointer", fontSize:14, fontWeight:800 }}>{slideLoading ? "生成中..." : "スライド生成"}</button>
             {selectedSlide && (
               <>
-                <button onClick={() => generateImage("gemini")} disabled={imageLoading} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:imageLoading?T.paper:"#4285F4", color:imageLoading?T.inkFaint:T.white, cursor:imageLoading?"not-allowed":"pointer", fontSize:12, fontWeight:800 }}>{imageLoading ? "生成中..." : "🎨 Gemini"}</button>
-                <button onClick={() => generateImage("openai")} disabled={imageLoading} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:imageLoading?T.paper:"#10A37F", color:imageLoading?T.inkFaint:T.white, cursor:imageLoading?"not-allowed":"pointer", fontSize:12, fontWeight:800 }}>{imageLoading ? "生成中..." : "🖼 gpt-image"}</button>
+                <button onClick={() => generateImage("gemini")} disabled={imageLoading} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:imageLoading?T.paper:"#4285F4", color:imageLoading?T.inkFaint:T.white, cursor:imageLoading?"not-allowed":"pointer", fontSize:14, fontWeight:800 }}>{imageLoading ? "生成中..." : "🎨 Gemini"}</button>
+                <button onClick={() => generateImage("openai")} disabled={imageLoading} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:imageLoading?T.paper:"#10A37F", color:imageLoading?T.inkFaint:T.white, cursor:imageLoading?"not-allowed":"pointer", fontSize:14, fontWeight:800 }}>{imageLoading ? "生成中..." : "🖼 gpt-image"}</button>
               </>
             )}
           </div>
@@ -189,14 +189,14 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
                 ["conclusion", "結論"],
               ] as const).map(([key, label]) => (
                 <label key={key} style={{ display:"flex", flexDirection:"column", gap:4 }}>
-                  <span style={{ fontSize:10, fontWeight:800, color:T.inkFaint, textTransform:"uppercase", letterSpacing:"0.06em" }}>{label}</span>
+                  <span style={{ fontSize:12, fontWeight:800, color:T.inkFaint, textTransform:"uppercase", letterSpacing:"0.06em" }}>{label}</span>
                   <textarea value={draft[key]} onChange={(e) => setDraft((prev) => prev ? { ...prev, [key]: e.target.value } : prev)}
-                    style={{ width:"100%", minHeight:64, padding:"9px 10px", borderRadius:8, border:`1px solid ${T.border}`, background:T.offWhite, color:T.ink, fontSize:12, lineHeight:1.6, resize:"vertical", fontFamily:"inherit", outline:"none" }} />
+                    style={{ width:"100%", minHeight:64, padding:"9px 10px", borderRadius:8, border:`1px solid ${T.border}`, background:T.offWhite, color:T.ink, fontSize:14, lineHeight:1.6, resize:"vertical", fontFamily:"inherit", outline:"none" }} />
                 </label>
               ))}
               <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
-                <button onClick={() => setEditing(false)} style={{ padding:"7px 11px", borderRadius:8, border:`1px solid ${T.border}`, background:T.white, color:T.inkMuted, cursor:"pointer", fontSize:12, fontWeight:700 }}>キャンセル</button>
-                <button onClick={saveEdit} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:T.ink, color:T.white, cursor:"pointer", fontSize:12, fontWeight:800 }}>保存</button>
+                <button onClick={() => setEditing(false)} style={{ padding:"7px 11px", borderRadius:8, border:`1px solid ${T.border}`, background:T.white, color:T.inkMuted, cursor:"pointer", fontSize:14, fontWeight:700 }}>キャンセル</button>
+                <button onClick={saveEdit} style={{ padding:"7px 11px", borderRadius:8, border:"none", background:T.ink, color:T.white, cursor:"pointer", fontSize:14, fontWeight:800 }}>保存</button>
               </div>
             </div>
           ) : (
@@ -208,23 +208,23 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
               { label:"結論", value:selectedHypothesis?.conclusion, color:T.green },
             ].map((item) => (
               <div key={item.label} style={{ padding:"11px 12px", background:T.offWhite, border:`1px solid ${T.borderLight}`, borderRadius:8, borderLeft:`3px solid ${item.color}` }}>
-                <div style={{ fontSize:10, fontWeight:800, color:item.color, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>{item.label}</div>
-                <div style={{ fontSize:13, color:T.inkLight, lineHeight:1.75 }}>{item.value}</div>
+                <div style={{ fontSize:12, fontWeight:800, color:item.color, textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:4 }}>{item.label}</div>
+                <div style={{ fontSize:15, color:T.inkLight, lineHeight:1.75 }}>{item.value}</div>
               </div>
             ))}
             </div>
           )}
           {generatedHypotheses[`${phase.id}-${selectedTask.id}`] && (
-            <div style={{ marginTop:8, fontSize:11, color:phase.band, fontWeight:700 }}>生成済み仮説</div>
+            <div style={{ marginTop:8, fontSize:13, color:phase.band, fontWeight:700 }}>生成済み仮説</div>
           )}
-          {slideError && <div style={{ marginTop:10, padding:"8px 10px", background:T.redLight, border:`1px solid #FCCACA`, borderRadius:8, color:T.red, fontSize:12 }}>{slideError}</div>}
-          {imageError && <div style={{ marginTop:10, padding:"8px 10px", background:T.redLight, border:`1px solid #FCCACA`, borderRadius:8, color:T.red, fontSize:12 }}>AI画像エラー: {imageError}</div>}
+          {slideError && <div style={{ marginTop:10, padding:"8px 10px", background:T.redLight, border:`1px solid #FCCACA`, borderRadius:8, color:T.red, fontSize:14 }}>{slideError}</div>}
+          {imageError && <div style={{ marginTop:10, padding:"8px 10px", background:T.redLight, border:`1px solid #FCCACA`, borderRadius:8, color:T.red, fontSize:14 }}>AI画像エラー: {imageError}</div>}
           {selectedSlide && (
             <div style={{ marginTop:14 }}>
               <div style={{ display:"flex", gap:6, marginBottom:10 }}>
-                <button onClick={() => setSlideView("preview")} style={{ padding:"5px 12px", borderRadius:6, border:`1px solid ${slideView==="preview"?phase.band:T.border}`, background:slideView==="preview"?`${phase.band}18`:T.offWhite, color:slideView==="preview"?phase.band:T.inkMuted, cursor:"pointer", fontSize:12, fontWeight:700 }}>スライド</button>
+                <button onClick={() => setSlideView("preview")} style={{ padding:"5px 12px", borderRadius:6, border:`1px solid ${slideView==="preview"?phase.band:T.border}`, background:slideView==="preview"?`${phase.band}18`:T.offWhite, color:slideView==="preview"?phase.band:T.inkMuted, cursor:"pointer", fontSize:14, fontWeight:700 }}>スライド</button>
                 {selectedSlide.imageData && (
-                  <button onClick={() => setSlideView("image")} style={{ padding:"5px 12px", borderRadius:6, border:`1px solid ${slideView==="image"?"#4285F4":T.border}`, background:slideView==="image"?"#EAF1FF":T.offWhite, color:slideView==="image"?"#4285F4":T.inkMuted, cursor:"pointer", fontSize:12, fontWeight:700 }}>🎨 AI 画像</button>
+                  <button onClick={() => setSlideView("image")} style={{ padding:"5px 12px", borderRadius:6, border:`1px solid ${slideView==="image"?"#4285F4":T.border}`, background:slideView==="image"?"#EAF1FF":T.offWhite, color:slideView==="image"?"#4285F4":T.inkMuted, cursor:"pointer", fontSize:14, fontWeight:700 }}>🎨 AI 画像</button>
                 )}
               </div>
               {slideView === "image" && selectedSlide.imageData ? (
@@ -239,9 +239,9 @@ export default function TasksTab({ phase, completedTasks, generatedHypotheses, t
             </div>
           )}
           <div style={{ marginTop:12, display:"flex", alignItems:"center", justifyContent:"space-between", gap:10 }}>
-            <span style={{ fontSize:11, color:T.inkFaint }}>進捗状態</span>
+            <span style={{ fontSize:13, color:T.inkFaint }}>進捗状態</span>
             <button onClick={() => toggleTask(selectedTask.id)}
-              style={{ padding:"7px 12px", borderRadius:8, border:`1px solid ${selectedDone?phase.band:T.border}`, background:selectedDone?`${phase.band}14`:T.offWhite, color:selectedDone?phase.band:T.inkMuted, cursor:"pointer", fontSize:12, fontWeight:700 }}>
+              style={{ padding:"7px 12px", borderRadius:8, border:`1px solid ${selectedDone?phase.band:T.border}`, background:selectedDone?`${phase.band}14`:T.offWhite, color:selectedDone?phase.band:T.inkMuted, cursor:"pointer", fontSize:14, fontWeight:700 }}>
               {selectedDone ? "完了済み" : "未完了"}
             </button>
           </div>

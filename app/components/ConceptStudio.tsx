@@ -102,16 +102,16 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
             <button key={e.key} onClick={() => { setSelected(e.key); setShowHistory(false); }}
               style={{ textAlign: "left", padding: "10px 12px", borderRadius: 8, cursor: "pointer", background: isSel ? T.white : "transparent", border: `1px solid ${isSel ? color : T.border}`, display: "flex", flexDirection: "column", gap: 2 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 18, height: 18, borderRadius: "50%", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", background: isDone ? T.green : isSel ? color : T.paper, color: isDone || isSel ? T.white : T.inkMuted }}>{isDone ? "✓" : i + 1}</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: isSel ? T.ink : T.inkMuted }}>{e.label}</span>
-                {hasD && !isDone && <span style={{ marginLeft: "auto", fontSize: 9, color: T.orange }}>検討中</span>}
+                <span style={{ width: 18, height: 18, borderRadius: "50%", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", background: isDone ? T.green : isSel ? color : T.paper, color: isDone || isSel ? T.white : T.inkMuted }}>{isDone ? "✓" : i + 1}</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: isSel ? T.ink : T.inkMuted }}>{e.label}</span>
+                {hasD && !isDone && <span style={{ marginLeft: "auto", fontSize: 11, color: T.orange }}>検討中</span>}
               </div>
-              <span style={{ fontSize: 10, color: T.inkFaint, paddingLeft: 26 }}>{e.hint}</span>
+              <span style={{ fontSize: 12, color: T.inkFaint, paddingLeft: 26 }}>{e.hint}</span>
             </button>
           );
         })}
         {allConfirmed && (
-          <div style={{ marginTop: 4, padding: "8px 10px", background: T.greenLight, border: `1px solid ${T.green}33`, borderRadius: 8, fontSize: 11, color: T.green, fontWeight: 700 }}>
+          <div style={{ marginTop: 4, padding: "8px 10px", background: T.greenLight, border: `1px solid ${T.green}33`, borderRadius: 8, fontSize: 13, color: T.green, fontWeight: 700 }}>
             ✓ コンセプト4要素が確定しました
           </div>
         )}
@@ -120,15 +120,15 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
       {/* 右：提案スペース */}
       <div style={{ flex: 1, minWidth: 0, border: `1px solid ${T.border}`, borderRadius: 10, background: T.white, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{el.label}の検討</span>
-          <span style={{ fontSize: 11, color: T.inkMuted }}>問い：{el.hint}</span>
-          {iterations > 0 && <span style={{ marginLeft: "auto", fontSize: 11, color: T.inkFaint }}>検証 {iterations} 回目</span>}
+          <span style={{ fontSize: 17, fontWeight: 800, color: T.ink }}>{el.label}の検討</span>
+          <span style={{ fontSize: 13, color: T.inkMuted }}>問い：{el.hint}</span>
+          {iterations > 0 && <span style={{ marginLeft: "auto", fontSize: 13, color: T.inkFaint }}>検証 {iterations} 回目</span>}
         </div>
 
-        {error && <div style={{ fontSize: 12, color: T.red }}>⚠ {error}</div>}
+        {error && <div style={{ fontSize: 14, color: T.red }}>⚠ {error}</div>}
 
         {busy && (
-          <div style={{ fontSize: 11, color: T.inkFaint, fontFamily: "monospace", whiteSpace: "pre-wrap", maxHeight: 80, overflow: "hidden", lineHeight: 1.5, background: T.offWhite, borderRadius: 6, padding: 10 }}>
+          <div style={{ fontSize: 13, color: T.inkFaint, fontFamily: "monospace", whiteSpace: "pre-wrap", maxHeight: 80, overflow: "hidden", lineHeight: 1.5, background: T.offWhite, borderRadius: 6, padding: 10 }}>
             {streamText || "案を生成しています…"}
           </div>
         )}
@@ -136,7 +136,7 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
         {!busy && hasDraft && <CurrentView data={draft} color={color} />}
 
         {!busy && !hasDraft && (
-          <div style={{ fontSize: 12.5, color: T.inkMuted, lineHeight: 1.7, padding: "8px 0" }}>
+          <div style={{ fontSize: 14.5, color: T.inkMuted, lineHeight: 1.7, padding: "8px 0" }}>
             {selected === "customer"
               ? "案件ブリーフをもとに、まず「誰（顧客）」の案を出します。"
               : `確定済みの要素をふまえて「${el.label}」の案を出します。`}
@@ -146,14 +146,14 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
         {/* 過去の検証履歴 */}
         {pastDrafts.length > 0 && (
           <div>
-            <button onClick={() => setShowHistory((s) => !s)} style={{ background: "transparent", border: "none", color: T.inkMuted, fontSize: 11, cursor: "pointer", padding: 0 }}>
+            <button onClick={() => setShowHistory((s) => !s)} style={{ background: "transparent", border: "none", color: T.inkMuted, fontSize: 13, cursor: "pointer", padding: 0 }}>
               {showHistory ? "▼" : "▶"} 過去の検証（{pastDrafts.length}件）
             </button>
             {showHistory && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
                 {pastDrafts.map((d, i) => (
                   <div key={i} style={{ border: `1px dashed ${T.border}`, borderRadius: 8, padding: 10, opacity: 0.7 }}>
-                    <div style={{ fontSize: 10, color: T.inkFaint, marginBottom: 6 }}>{i + 1} 回目</div>
+                    <div style={{ fontSize: 12, color: T.inkFaint, marginBottom: 6 }}>{i + 1} 回目</div>
                     <CurrentView data={d} color={color} />
                   </div>
                 ))}
@@ -166,15 +166,15 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
         <div style={{ borderTop: `1px solid ${T.borderLight}`, paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
           <textarea value={feedback[selected] ?? ""} onChange={(e) => setFeedback((f) => ({ ...f, [selected]: e.target.value }))}
             placeholder={`この案へのフィードバック・修正指示（例：${el.key === "customer" ? "n1をもっと具体的に。20代の単身者に絞りたい" : el.key === "issue" ? "逼迫性が弱い。もっと切実な課題に" : el.key === "method" ? "もっと斬新な手法を。前提を疑う案も" : "価値が抽象的。得られる状態を具体的に"}）`}
-            style={{ width: "100%", minHeight: 56, padding: "9px 11px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 12.5, lineHeight: 1.6, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
+            style={{ width: "100%", minHeight: 56, padding: "9px 11px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 14.5, lineHeight: 1.6, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button onClick={generate} disabled={busy || !brief.trim()}
-              style={{ padding: "9px 16px", background: busy || !brief.trim() ? T.paper : color, border: "none", borderRadius: 8, color: busy || !brief.trim() ? T.inkFaint : T.white, fontSize: 12, fontWeight: 700, cursor: busy || !brief.trim() ? "not-allowed" : "pointer" }}>
+              style={{ padding: "9px 16px", background: busy || !brief.trim() ? T.paper : color, border: "none", borderRadius: 8, color: busy || !brief.trim() ? T.inkFaint : T.white, fontSize: 14, fontWeight: 700, cursor: busy || !brief.trim() ? "not-allowed" : "pointer" }}>
               {hasDraft ? "フィードバックを反映して再提案" : "案を出す"}
             </button>
             {hasDraft && (
               <button onClick={confirmAndNext} disabled={busy}
-                style={{ padding: "9px 16px", background: busy ? T.paper : T.ink, border: "none", borderRadius: 8, color: busy ? T.inkFaint : T.white, fontSize: 12, fontWeight: 700, cursor: busy ? "not-allowed" : "pointer" }}>
+                style={{ padding: "9px 16px", background: busy ? T.paper : T.ink, border: "none", borderRadius: 8, color: busy ? T.inkFaint : T.white, fontSize: 14, fontWeight: 700, cursor: busy ? "not-allowed" : "pointer" }}>
                 {confirmed.includes(selected) ? "✓ 確定済み（次へ）" : "✓ この案で確定して次へ"}
               </button>
             )}
