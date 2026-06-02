@@ -429,6 +429,8 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
         )}
       </div>
 
+      <div style={{ fontSize: 12.5, color: T.inkMuted }}>各ブロックは右側の「生成 / 再生成」ボタンで個別に生成できます。</div>
+
       {/* コンセプト・スタジオ */}
       <div>
         {(() => {
@@ -455,7 +457,6 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
 
       {/* 戦略・収支・PJ設計ブロック */}
       <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16 }}>
-        <div style={{ fontSize: 12.5, color: T.inkMuted, marginBottom: 10 }}>各ブロックは右側の「生成 / 再生成」ボタンで個別に生成できます。</div>
         {!conceptData && <div style={{ fontSize: 13.5, color: T.inkFaint, marginBottom: 8 }}>※ まずコンセプトを生成・確定してください（少なくとも顧客の案が必要です）。</div>}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
