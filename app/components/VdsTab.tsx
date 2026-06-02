@@ -434,10 +434,9 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
         {!collapsed.concept && <ConceptStudio brief={brief} color={AGENTS.concept.color} initialData={conceptData} initialConfirmed={conceptConfirmed} onChange={onConceptChange} />}
       </div>
 
-      {/* 後続ブロック */}
+      {/* 戦略・収支・PJ設計ブロック */}
       <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>後続ブロック（戦略・収支・PJ設計）</span>
           <button onClick={generateDownstream} disabled={running || !conceptData}
             style={{ marginLeft: "auto", padding: "6px 12px", background: T.white, border: `1px solid ${running || !conceptData ? T.border : T.ink}`, borderRadius: 8, color: running || !conceptData ? T.inkFaint : T.ink, fontSize: 13, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer" }}>
             まとめて生成（順番に）
