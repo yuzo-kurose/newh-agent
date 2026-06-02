@@ -24,6 +24,7 @@ interface Props {
   projectContext: string;
   results: VdsResults;
   onPersist: (results: VdsResults) => void;
+  fullWidth?: boolean; // サイドバーを閉じているときは表示領域を最大化する
 }
 
 const DOWNSTREAM = ["strategy", "revenue", "project"];
@@ -347,7 +348,7 @@ function migrateSustainability(results: VdsResults): { results: VdsResults; chan
   };
 }
 
-export default function VdsTab({ projectId, projectContext, results, onPersist }: Props) {
+export default function VdsTab({ projectId, projectContext, results, onPersist, fullWidth }: Props) {
   const briefKey = `newh-agent.p.${projectId}.vdsBrief`;
   const [brief, setBrief] = useState<string>(() => {
     if (typeof window === "undefined") return projectContext;
@@ -463,7 +464,7 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 1600 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: fullWidth ? "100%" : 1600 }}>
       {canvasFull && (
         <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: T.white, display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>

@@ -230,7 +230,7 @@ export default function NEWhAgent() {
 
           <div style={{ flex:1, overflowY:"auto", padding:"20px" }}>
             {activeView==="context" && <ProjectContextTab context={projectContext} setContext={setProjectContext} />}
-            {activeView==="vds" && <VdsTab key={currentId} projectId={currentId} projectContext={projectContext} results={vdsResults} onPersist={persistVdsResults} />}
+            {activeView==="vds" && <VdsTab key={currentId} projectId={currentId} projectContext={projectContext} results={vdsResults} onPersist={persistVdsResults} fullWidth={sidebarCollapsed} />}
             {activeView==="phase" && activeTab==="tasks" && <TasksTab phase={phase} completedTasks={completedTasks} generatedHypotheses={generatedHypotheses} taskSlides={taskSlides} projectContext={projectContext} toggleTask={toggleTask} updateHypothesis={updateHypothesis} updateTaskSlide={updateTaskSlide} />}
             {activeView==="phase" && activeTab==="checks" && <ChecksTab phase={phase} onOpenChat={() => setActiveTab("chat")} />}
             {activeView==="phase" && activeTab==="chat" && <ChatTab phase={phase} />}
