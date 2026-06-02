@@ -483,6 +483,120 @@ export interface ConceptResult {
 }
 
 // ============================================================
+// STRATEGY (VDSブロック2) — 競合可視化＆競争軸の構造化スキーマ
+// ============================================================
+// 競合の4階層。コンセプトで規定した各要素との重複具合から、向き合うべき競合を捉える。
+export const COMPETITOR_TIERS = [
+  { key: "time", label: "時間競合", desc: "「同じ時間」を捉える競合。問題/課題や消費分類は異なるが、自事業が捉えようとする時間と同じ時間を捉える、あるいは時間をなくす可能性がある（例：Uberの待ち時間、隙間時間を埋めるスマホゲーム）。" },
+  { key: "purpose", label: "目的競合", desc: "「同じ目的」を捉える競合。問題/課題は異なるが同じ目的で利用され、企業や生活者目線では同じ財布/予算の中に分類されうる。" },
+  { key: "problem", label: "問題競合", desc: "「同じ問題」と向き合う競合。手法・アプローチは異なるが同じ問題/課題と向き合う、いわゆる代替品・代替競合。" },
+  { key: "complete", label: "完全競合", desc: "「コンセプト自体」が重なる競合。顧客/課題/価値/手法が共通し、具体の戦略面で違いが生まれる。後発参入時に焦点を当てるべき事業者となることが多い。" },
+] as const;
+export type CompetitorTierKey = (typeof COMPETITOR_TIERS)[number]["key"];
+
+// 顧客目線の判断軸（3要素）。
+export const JUDGEMENT_AXES = [
+  { key: "decision", label: "決定軸", desc: "導入/購入の最終的な決め手となる軸。意思決定を分つ軸。" },
+  { key: "requirement", label: "要件軸", desc: "決め手にはならないが、ないと検討俎上に上がらない軸。" },
+  { key: "nonengagement", label: "非関与軸", desc: "実質意思決定には直接関与しない、各社の顔立ちを把握するための補完的な軸。" },
+] as const;
+export type JudgementAxisKey = (typeof JUDGEMENT_AXES)[number]["key"];
+
+// 事業者目線の訴求軸（3要素）。
+export const APPEAL_AXES = [
+  { key: "unique", label: "独自軸", desc: "独自の立ち位置を規定するために生まれ、特定事業者のみが打ち出している軸。" },
+  { key: "superiority", label: "優劣軸", desc: "企業間で優劣が生まれ、違いが生まれている実質的な競争軸。" },
+  { key: "parity", label: "同質軸", desc: "各社重視し訴求しているが、大きな差が生まれていない同質化した軸。" },
+] as const;
+export type AppealAxisKey = (typeof APPEAL_AXES)[number]["key"];
+
+export interface CompetitorTierEntry {
+  tier: CompetitorTierKey;
+  players: string; // 該当する競合（具体名・類型）
+  overlap: string; // コンセプト要素との重複具合／自社の新規性との差
+}
+
+export interface CompetitiveAxisEntry {
+  axis: string; // 軸名（例：価格の安さ／レポート充実度）
+  judgement: JudgementAxisKey; // 判断軸の分類
+  appeal: AppealAxisKey; // 訴求軸の分類
+  isCompetitiveAxis: boolean; // 市場で選ばれるかを分つ競争軸か（独自×決定／優劣×決定／優劣×要件）
+  note: string; // 一言（各社の優劣・自社の立ち位置）
+}
+
+// 優位性ツリーの6階層。顧客・競合目線（上）から事業者目線（下）へ、つながりを言語化する。
+export const ADVANTAGE_TREE_LEVELS = [
+  { key: "customer", label: "顧客", question: "誰に向き合うか", origin: "顧客起点" },
+  { key: "judgement", label: "判断軸", question: "何を基準に選ぶか", origin: "顧客起点" },
+  { key: "competitive", label: "競争軸", question: "どこで優劣が生まれるか", origin: "顧客起点" },
+  { key: "hook", label: "優位性フック", question: "なぜ自社は選ばれるのか／どこで戦うのか", origin: "結節点" },
+  { key: "core", label: "構築の肝", question: "なぜその優位性を構築できるのか", origin: "アセット起点" },
+  { key: "source", label: "優位性の源泉", question: "なぜそれができるのか", origin: "アセット起点" },
+] as const;
+
+// 構築の肝（活動/機能/仕組み）と、それを実現できる理由となる優位性の源泉。
+export interface AdvantageCoreNode {
+  core: string; // 構築の肝：フックを構築する活動・機能・仕組みの切り口
+  sources: string[]; // 優位性の源泉：肝を実現できる理由となる事業者資産（自社/パートナーリソース・出店・決済等）
+}
+
+// 優位性ツリー：競争軸→フック→肝→源泉のつながり（砂時計構造）。
+export interface AdvantageTree {
+  hook: string; // 優位性フック（「圧倒的な〜」。競争軸のどこで戦うかを1つに絞る）
+  hookReason: string; // なぜそのフックか／顧客起点とアセット起点が収束する理由
+  cores: AdvantageCoreNode[]; // 構築の肝 → 優位性の源泉
+}
+
+// ロック（選ばれ続ける理由）の2つのアプローチ。
+export const LOCK_APPROACHES = [
+  { key: "customer", label: "顧客をロックする", desc: "自社を選んでくれた顧客を離さない。離れない理由を作り出すことで事業に持続性を生む。" },
+  { key: "competitor", label: "競合/後発をロックする", desc: "競合/後発参入が動かない・模倣しない状態を作り、自社しかない状態＝顧客に選ばれ続ける状態を生む。" },
+] as const;
+export type LockApproachKey = (typeof LOCK_APPROACHES)[number]["key"];
+
+// 選ばれ続ける理由のパターン（図9-8）。各ロックエントリはこのlabelから選ぶ。
+export const LOCK_PATTERNS = [
+  { key: "cannot_leave", approach: "customer", label: "離れられない状態をつくる", example: "自分のことを誰よりも理解してくれている（パーソナライズ／スイッチングコストを高める）" },
+  { key: "dont_want_leave", approach: "customer", label: "離れたくない状態をつくる", example: "ブランド・サービス・ビジョンに愛着を抱いている" },
+  { key: "cannot_catchup", approach: "competitor", label: "マネしても追いつけない状態をつくる", example: "先行して市場の『顔』になる（例：ネットワーク効果が効きやすい事業）" },
+  { key: "cannot_imitate", approach: "competitor", label: "マネしたくてもできない状態をつくる", example: "技術・特別なアセット・ノウハウが必要（例：ネット生保 vs 大手生保）" },
+  { key: "wont_imitate", approach: "competitor", label: "マネしようと思わない状態をつくる", example: "市場がニッチすぎる／業界慣習からは不合理でマネしようと思えない" },
+] as const;
+export type LockPatternKey = (typeof LOCK_PATTERNS)[number]["key"];
+
+export interface LockEntry {
+  approach: LockApproachKey; // 顧客ロック / 競合ロック
+  pattern: string; // LOCK_PATTERNS の label から選ぶ
+  how: string; // この事業で具体的にどうその状態を作るか
+}
+
+// 持続サイクル図（図13-13）。蓄積→強化→ロックが好循環として回る因果ループ。
+export interface SustainCycle {
+  coreReason: string; // 中心：競争優位性のある選ばれ続ける理由（ロックの核＝コミュニティ/関係性等）
+  loop: string[]; // 好循環のノードを一周の順序で（A→B→…→Aに戻る）
+  accumulations: string[]; // ループの中で蓄積されるストック資産（例：顧客データ）
+}
+
+export interface StrategyResult {
+  competitor: string;
+  chosenReason: string;
+  keepChosenReason: string;
+  activity: string;
+  ownResource: string;
+  partnerResource: string;
+  channel: string;
+  competitorTiers: CompetitorTierEntry[]; // 競合の4階層可視化
+  competitiveAxes: CompetitiveAxisEntry[]; // 戦略キャンバス（判断軸×訴求軸）
+  competitiveAxisSummary: string; // 競争軸のSo what（市場で選ばれるかを実質的に分つ軸は何か）
+  advantageTree: AdvantageTree; // 優位性ツリー（フック→肝→源泉）
+  // 旧・持続戦略ブロックを統合：選ばれ続ける理由＝ロックと、その持続サイクル
+  accumulated: string; // 事業継続により蓄積されるもの（データ・関係性・ノウハウ等）
+  strengthened: string; // 蓄積によって成長・強化されるもの
+  locks: LockEntry[]; // ロック（顧客ロック／競合ロック × 5パターン）
+  sustainCycle: SustainCycle; // 持続サイクル図（好循環の因果ループ）
+}
+
+// ============================================================
 // AGENT PROMPTS
 // ============================================================
 const AGENT_BASE = `あなたはNEWhのシニアビジネスデザイナーです。JSONのみを返してください。前置き・説明・Markdownコードブロック不要。`;
@@ -580,16 +694,54 @@ const BLOCK_THINKING: Record<string, string> = {
 - value／valueExperiences：顧客が得る成果・状態（抽象。before→afterで渇望される状態）と、その具体である体験。
 - ideaApproaches：10の着眼点から、この課題に効きそうなものを選び、HMWの問いと手法・価値の案をセットで出す。`,
   strategy: `
-このブロック固有の問い:
-- 市場の規模・特性・成長性を、希望的観測でなくマクロ視点の根拠とともに語れているか？
-- 直接競合だけでなく「顧客が今使っている代替手段（自前運用・Excel・何もしない等）」まで競合に含めたか？
-- 「なぜ他社ではなく自社がやるべきか」に必然性があるか？単なる強みの列挙で終わっていないか？
-- 仕組み（オペレーション・体制・パートナー）はブロック1のコンセプトと整合しているか？`,
-  sustainability: `
-このブロック固有の問い:
-- 蓄積される資産は、競合が時間や資金をかけても容易に真似できない固有のものか？
-- 蓄積→強化→還元の因果ループは、机上でなく実際に回るか？どこが一番弱いか？
-- 続けるほど強くなる構造になっているか？それともいつか頭打ちになる一過性の優位か？`,
+このブロック固有の思考プロセス（戦略と仕組みを書く）:
+
+まず競合を可視化する。コンセプト（顧客/課題/価値/手法）で規定した各要素との重複具合から、競合を4階層で洗い出し、自社事業の新規性を捉え、向き合うべき競合を言語化する（competitorTiersに反映）:
+- 時間競合：「同じ時間」を捉える競合。問題/課題・消費分類は異なるが、自事業が捉えようとする時間と同じ時間を捉える/なくす可能性がある（例：Uberの待ち時間、隙間時間のスマホゲーム）。
+- 目的競合：「同じ目的」を捉える競合。問題/課題は異なるが同じ目的で使われ、同じ財布/予算に分類されうる。
+- 問題競合：「同じ問題」と向き合う競合。手法は異なるが同じ課題と向き合う代替品・代替競合。
+- 完全競合：「コンセプト自体」が重なる競合。顧客/課題/価値/手法が共通し、具体の戦略で違いが出る。後発参入では焦点を当てるべき相手。
+→ 4階層すべてを無理に埋めず、この事業で実在し向き合うべき階層を中心に、具体名・類型と「自社コンセプトとの重複/新規性の差」をセットで書く。
+
+次に競争環境を把握し、競争軸を特定する（competitiveAxes / competitiveAxisSummaryに反映）。
+選ばれるかどうかは、顧客目線（判断軸）と事業者目線（訴求軸）の掛け合わせで決まる。主要な評価軸を5〜8本挙げ、各軸を2軸で分類する:
+- 判断軸（顧客目線）：決定軸＝導入/購入の最終的な決め手・意思決定を分つ／要件軸＝決め手ではないが無いと検討に上がらない／非関与軸＝意思決定に直接関与しない補完的な軸。
+- 訴求軸（事業者目線）：独自軸＝特定事業者のみが打ち出す／優劣軸＝企業間で優劣・違いが生まれている実質的な競争軸／同質軸＝各社訴求するが大きな差が出ていない。
+競争軸（市場で選ばれるかを実質的に分つ軸）は、(1)独自軸×決定軸 (2)優劣軸×決定軸 (3)優劣軸×要件軸 のいずれかに該当する軸である（これらをisCompetitiveAxis=trueにする）。
+competitiveAxisSummaryには、競合群で優劣が生まれ、かつ意思決定に影響を与えている＝市場で選ばれるかを分つ競争軸は何かを一言で書く。
+
+続いて優位性ツリーで「選ばれる理由（フック）」を言語化する（advantageTreeに反映）。コンセプト→顧客→判断軸→競争軸とつながった先で、自社が選ばれる結節点＝フックを定め、それを構築できる理由（肝→源泉）まで掘り下げる。砂時計構造（顧客目線で絞り込み、事業者目線で広げる）:
+- 優位性フック（hook）：競争軸のどこで「圧倒的に」勝つかを1つに絞る（例「圧倒的な速さ」）。総花的に全競争軸で勝とうとしない。「どこで戦うのか」を決める一手。
+- 構築の肝（core）：そのフックを構築する活動・機能・仕組みの切り口（例「オペレーションの徹底的な効率化」）。問い：なぜその優位性を構築できるのか。
+- 優位性の源泉（sources）：肝を実現できる理由となる事業者目線の資産（自社/パートナーリソース、立地・出店戦略、決済方式等。例「調理経験豊富な自社料理人」「券売機制による事前決済」）。問い：なぜそれができるのか。
+
+フックは2つのアプローチで規定し、両者が収束する点を選ぶ（hookReasonにその収束理由を書く）:
+- 顧客起点アプローチ：顧客→判断軸→競争軸とたどり、「顧客はなぜ自社を選ぶのか」からフックを導く。
+- アセット起点アプローチ：保有/獲得可能な源泉→肝とたどり、「つまりこれはどの優位性・どの選ばれる理由につながるのか」からフックを導く。
+
+図9-6の対応：フック＝chosenReason、肝＝activity、源泉＝ownResource/partnerResource/channel。advantageTreeとこれらのフラット項目は必ず整合させる（フックの言葉とchosenReasonの言葉がぶれない、肝とactivityが一致する）。
+
+さらに「選ばれ続ける理由」＝ロックを規定する（locks / accumulated / strengthened / sustainCycle / keepChosenReasonに反映）。フック（選ばれる理由）が一時的な優位で終わらないよう、離れない・模倣されない状態を作る。
+ロックの3つの問い（この順で内省する）:
+1. 事業活動を通じて新たに自社に蓄積されていくものは何か（→accumulated）。
+2. （蓄積されたものを通じて）自社事業の何が強化されていくか（→strengthened）。
+3. 強化された結果、利用者や競合にとってどのようなロックを構築できるか（→locks）。
+ロックの2アプローチと5パターン（locksは効くものを2〜4件選ぶ）:
+- 顧客をロックする：離れられない状態をつくる（パーソナライズ/スイッチングコスト）／離れたくない状態をつくる（ブランド・ビジョンへの愛着）。
+- 競合/後発をロックする：マネしても追いつけない（先行して市場の顔・ネットワーク効果）／マネしたくてもできない（技術・特別なアセット・ノウハウ。例：ネット生保 vs 大手生保）／マネしようと思わない（ニッチすぎ・業界慣習から不合理）。
+keepChosenReasonには、これらロックの結論＝選ばれ続ける理由を一文で書く。
+
+持続サイクル図（sustainCycle）で、蓄積→強化→ロックが好循環として回る構造を因果ループで表す:
+- coreReason：循環の中心に置く競争優位性のある選ばれ続ける理由（コミュニティ/関係性/データ資産等）。
+- loop：好循環のノードを一周の順で並べる（例：利用者数→売上→供給側への還元→供給数→マッチング精度→提供価値→利用者数に戻る）。続けるほど各ノードが強まり一周して戻る形にする。
+- accumulations：ループの中で積み上がるストック資産（例：利用データ）。
+ループが回るほどロックが強まり事業の継続性が増す——その因果が机上でなく実際に回るかを確認する。
+
+そのうえで戦略を組み立てる:
+- 直接競合だけでなく「顧客が今使っている代替手段（自前運用・Excel・何もしない等）」まで競合に含める。
+- 「なぜ他社ではなく自社がやるべきか」に必然性があるか。単なる強みの列挙で終わらせない。
+- chosenReason/keepChosenReasonは、特定した競争軸の上で自社が独自軸/優劣軸を取れる根拠として書く。
+- 仕組み（活動・機能・自社/パートナーリソース・チャネル）はブロック1のコンセプトと整合しているか。`,
   revenue: `
 このブロック固有の問い:
 - フロー型かストック型か明確か？誰の・どんな価値に対して課金するのかを言い切れているか？
@@ -611,22 +763,16 @@ export const AGENTS: Record<string, AgentDef> = {
     build: (brief) => `クライアント依頼：\n${brief}`,
   },
   strategy: {
-    label: "ブロック2：戦略と仕組み", icon: "⚔", color: T.orange,
-    reviewCriteria: "・直接競合＋代替手段まで競合として捉えているか\n・選ばれる理由・選ばれ続ける理由が競争優位性として語られ「なぜ自社か」に答えているか\n・活動/機能・自社/パートナーリソース・チャネルが具体で、コンセプトと整合しているか",
-    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.strategy + `\nVDSブロック2「戦略と仕組み（マクロ視点）」をVDS図の構造で生成。優位性（競合に対しどう勝つか）と仕組み（どう実現するか）に分ける。JSONのみ：\n{"competitor":"競合となる競合代替品（直接競合＋代替手段）","chosenReason":"競争優位性のある『選ばれる理由』","keepChosenReason":"競争優位性のある『選ばれ続ける理由』","activity":"そのための活動・機能・仕組み","ownResource":"活用する自社リソース","partnerResource":"活用するパートナーリソース","channel":"チャネル・提供手段（伝え、届ける経路）"}`,
+    label: "ブロック2：戦略・優位性・持続", icon: "⚔", color: T.orange,
+    reviewCriteria: "・競合を4階層（時間/目的/問題/完全）で可視化し、コンセプトとの重複具合から自社の新規性と向き合うべき競合を捉えているか\n・競争軸が判断軸（決定/要件/非関与）×訴求軸（独自/優劣/同質）で分類され、市場で選ばれるかを分つ競争軸（独自×決定／優劣×決定／優劣×要件）を特定できているか\n・優位性ツリーのフックが競争軸の上で1つに絞られ（総花的でない）、顧客起点とアセット起点の双方から裏づけられているか\n・構築の肝が『なぜ構築できるか』、源泉が『なぜできるか』に答え、フック→肝→源泉のつながりが成立しているか\n・フック＝選ばれる理由、肝＝活動/機能、源泉＝自社/パートナーリソースが整合しているか（言葉がぶれていないか）\n・選ばれ続ける理由＝ロックが、蓄積→強化→ロックの3つの問いから導かれ、顧客ロック/競合ロックの具体パターンで語られているか\n・持続サイクルが好循環（続けるほど各ノードが強まり一周して戻る）として実際に回る因果になっているか\n・直接競合＋代替手段まで競合として捉え、選ばれる理由・選ばれ続ける理由が「なぜ自社か」に答えているか",
+    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.strategy + `\nVDSブロック2「戦略・優位性・持続（マクロ視点）」をVDS図の構造で生成。前述の競合4階層・競争軸・優位性ツリー・ロック・持続サイクルを内省した結果をJSONで返す。優位性（どう勝つか）・仕組み（どう実現するか）・持続（どう選ばれ続けるか）を含める。JSONのみ：\n{"competitorTiers":[{"tier":"time|purpose|problem|complete","players":"該当する競合（具体名・類型）","overlap":"コンセプト要素との重複具合／自社の新規性との差"}],"competitiveAxes":[{"axis":"評価軸名（例：価格の安さ／レポート充実度）","judgement":"decision|requirement|nonengagement","appeal":"unique|superiority|parity","isCompetitiveAxis":true,"note":"各社の優劣・自社の立ち位置を一言"}],"competitiveAxisSummary":"市場で選ばれるかを実質的に分つ競争軸は何か（一言・40字以内）","advantageTree":{"hook":"優位性フック（競争軸のどこで圧倒的に勝つかを1つに。例：圧倒的な速さ）","hookReason":"なぜそのフックか／顧客起点とアセット起点が収束する理由","cores":[{"core":"構築の肝（フックを構築する活動・機能・仕組み）","sources":["優位性の源泉（肝を実現できる理由となる事業者資産）"]}]},"competitor":"競合となる競合代替品（直接競合＋代替手段）","chosenReason":"特定した競争軸の上での競争優位性ある『選ばれる理由』（フックと整合）","keepChosenReason":"競争優位性のある『選ばれ続ける理由』（ロックの結論を一文で）","activity":"そのための活動・機能・仕組み（肝と整合）","ownResource":"活用する自社リソース（源泉と整合）","partnerResource":"活用するパートナーリソース（源泉と整合）","channel":"チャネル・提供手段（伝え、届ける経路）","accumulated":"事業継続により蓄積されるもの（データ・関係性・ノウハウ等）","strengthened":"蓄積によって成長・強化されるもの","locks":[{"approach":"customer|competitor","pattern":"離れられない状態をつくる|離れたくない状態をつくる|マネしても追いつけない状態をつくる|マネしたくてもできない状態をつくる|マネしようと思わない状態をつくる","how":"この事業で具体的にどうその状態を作るか"}],"sustainCycle":{"coreReason":"循環の中心＝競争優位性のある選ばれ続ける理由（コミュニティ/関係性/データ資産等）","loop":["好循環ノードを一周の順で（最後は先頭に戻る前提）"],"accumulations":["ループ内で蓄積されるストック資産"]}}\ncompetitorTiersは2〜4件、competitiveAxesは5〜8本（うちisCompetitiveAxis=trueは1〜3本）、advantageTree.coresは2〜4件・各sourcesは1〜3件、locksは効くものを2〜4件、sustainCycle.loopは4〜6ノード・accumulationsは1〜3件。`,
     build: (brief, prev) => `クライアント依頼：\n${brief}\n\nブロック1:\n${JSON.stringify(prev.concept, null, 2)}`,
-  },
-  sustainability: {
-    label: "ブロック3：持続戦略", icon: "∞", color: T.green,
-    reviewCriteria: "・事業継続により蓄積されるものが実際に積み上がる固有資産か\n・成長/強化されるものが深まり強まる因果が明確か\n・続けるほど強くなり事業の継続性を見込めるか",
-    system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.sustainability + `\nVDSブロック3「持続戦略」をVDS図の構造で生成。JSONのみ：\n{"accumulated":"事業継続により蓄積されるもの（データ・関係性・ノウハウ等）","strengthened":"蓄積によって成長・強化されるもの（深まり強まるもの）","sustainabilityReason":"続けるほど強くなり事業の継続性を見込める理由"}`,
-    build: (brief, prev) => `クライアント依頼：\n${brief}\n\nブロック1:\n${JSON.stringify(prev.concept)}\nブロック2:\n${JSON.stringify(prev.strategy)}`,
   },
   revenue: {
     label: "ブロック4：収支モデル", icon: "¥", color: T.purple,
     reviewCriteria: "・回収エンジン（何で収益を生むか）が明確か\n・料金モデルで誰から何に課金し収入を創るか言い切れているか\n・主要コスト構造が具体で、採算成立の目算（黒字化・UE）が立つか",
     system: AGENT_BASE + NEWH_THINKING + BLOCK_THINKING.revenue + `\nVDSブロック4「利益モデル」をVDS図の構造で生成。JSONのみ：\n{"recoveryEngine":"事業活動の中における回収エンジン（何で投資を回収するか）","pricingModel":"料金モデル（誰から何に課金し収入を創るか・フロー/ストック）","costStructure":"コスト/コスト構造（主要な固定費・変動費）","profitability":"採算成立の目算（黒字化時期・ユニットエコノミクス仮説）"}`,
-    build: (brief, prev) => `クライアント依頼：\n${brief}\n\nブロック1:\n${JSON.stringify(prev.concept)}\nブロック2:\n${JSON.stringify(prev.strategy)}\nブロック3:\n${JSON.stringify(prev.sustainability)}`,
+    build: (brief, prev) => `クライアント依頼：\n${brief}\n\nブロック1:\n${JSON.stringify(prev.concept)}\nブロック2:\n${JSON.stringify(prev.strategy)}`,
   },
   project: {
     label: "プロジェクト設計", icon: "◈", color: T.red,

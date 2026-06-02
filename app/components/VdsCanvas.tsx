@@ -3,7 +3,7 @@ import { useState, createContext, useContext } from "react";
 import { T, ConceptResult, ConceptElementKey } from "../lib/constants";
 
 type Obj = Record<string, unknown> | undefined;
-type BlockId = "strategy" | "sustainability" | "revenue";
+type BlockId = "strategy" | "revenue";
 
 // 全画面時のみ、各セルをドラッグでリサイズ可能にする。
 const ResizableCtx = createContext(false);
@@ -12,7 +12,6 @@ interface Props {
   concept?: Partial<ConceptResult>;
   conceptConfirmed: ConceptElementKey[];
   strategy?: Obj;
-  sustainability?: Obj;
   revenue?: Obj;
   onEditConcept: (field: string, value: string) => void;
   onEditBlock: (block: BlockId, field: string, value: string) => void;
@@ -94,7 +93,7 @@ const RowLabel = ({ children }: { children: React.ReactNode }) => (
   <div style={{ fontSize: 11, fontWeight: 700, color: T.inkMuted, alignSelf: "center" }}>{children}</div>
 );
 
-export default function VdsCanvas({ concept, conceptConfirmed, strategy, sustainability, revenue, onEditConcept, onEditBlock, fullscreen }: Props) {
+export default function VdsCanvas({ concept, conceptConfirmed, strategy, revenue, onEditConcept, onEditBlock, fullscreen }: Props) {
   const cBlue = T.blue, cOrange = T.orange, cGreen = T.green, cPurple = T.purple;
   const ok = (k: ConceptElementKey) => conceptConfirmed.includes(k);
   const cv = (k: ConceptElementKey, key: string) => (ok(k) ? str(concept, key) : "");
@@ -152,13 +151,13 @@ export default function VdsCanvas({ concept, conceptConfirmed, strategy, sustain
           </div>
         </div>
 
-        {/* 持続戦略 */}
+        {/* 持続戦略（戦略ブロックに統合。ロック＝選ばれ続ける理由の蓄積→強化） */}
         <div style={{ flex: "1.5 1 200px", background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: 12 }}>
           <BlockHeader title="持続戦略" question="どこに強くされていくのか？" color={cGreen} />
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <Cell label="蓄積されるもの" value={str(sustainability, "accumulated")} color={cGreen} onSave={eb("sustainability", "accumulated")} />
-            <Cell label="成長・強化されるもの" value={str(sustainability, "strengthened")} color={cGreen} onSave={eb("sustainability", "strengthened")} />
-            <Cell label="継続性の理由" value={str(sustainability, "sustainabilityReason")} color={cGreen} onSave={eb("sustainability", "sustainabilityReason")} />
+            <Cell label="蓄積されるもの" value={str(strategy, "accumulated")} color={cGreen} onSave={eb("strategy", "accumulated")} />
+            <Cell label="成長・強化されるもの" value={str(strategy, "strengthened")} color={cGreen} onSave={eb("strategy", "strengthened")} />
+            <Cell label="選ばれ続ける理由（ロック）" value={str(strategy, "keepChosenReason")} color={cGreen} onSave={eb("strategy", "keepChosenReason")} />
           </div>
         </div>
 
