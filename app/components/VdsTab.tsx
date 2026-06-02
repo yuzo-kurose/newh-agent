@@ -431,13 +431,13 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
 
       <div style={{ fontSize: 12.5, color: T.inkMuted }}>各ブロックは右側の「生成 / 再生成」ボタンで個別に生成できます。</div>
 
-      {/* コンセプト・スタジオ */}
-      <div>
+      {/* コンセプト・スタジオ（ブロック1） */}
+      <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
         {(() => {
           const cPhase = runtime.concept?.phase ?? (resultsState.concept ? "done" : "idle");
           const cBusy = cPhase === "generating" || cPhase === "reviewing" || cPhase === "retry";
           return (
-            <div onClick={() => toggle("concept")} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, cursor: "pointer", userSelect: "none", flexWrap: "wrap" }}>
+            <div onClick={() => toggle("concept")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: collapsed.concept ? "none" : `1px solid ${T.borderLight}`, cursor: "pointer", userSelect: "none", flexWrap: "wrap" }}>
               <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed.concept ? "▶" : "▼"}</span>
               <span style={{ width: 24, height: 24, borderRadius: 6, background: `${AGENTS.concept.color}18`, color: AGENTS.concept.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{AGENTS.concept.icon}</span>
               <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>ブロック1：コンセプト</span>
@@ -452,7 +452,7 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
             </div>
           );
         })()}
-        {!collapsed.concept && <ConceptStudio key={conceptKey} brief={brief} color={AGENTS.concept.color} initialData={conceptData} initialConfirmed={conceptConfirmed} onChange={onConceptChange} />}
+        {!collapsed.concept && <div style={{ padding: "12px 14px" }}><ConceptStudio key={conceptKey} brief={brief} color={AGENTS.concept.color} initialData={conceptData} initialConfirmed={conceptConfirmed} onChange={onConceptChange} /></div>}
       </div>
 
       {/* 戦略・収支・PJ設計ブロック */}
