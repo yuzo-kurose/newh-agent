@@ -210,30 +210,31 @@ function StrategyExtras({ data, color }: { data: Record<string, unknown> | undef
 }
 
 // 持続サイクル図：好循環のノードを円環状に配置し、中心にロックの核を置く。
+// 配置はコンテナ相対(%)で、正方形のアスペクト比に合わせて拡縮する（重なり防止）。
 function SustainCycleView({ coreReason, loop, color }: { coreReason: string; loop: string[]; color: string }) {
   const n = loop.length;
-  const SIZE = 320;
-  const R = 116; // ノードを置く半径
-  const center = SIZE / 2;
+  const RP = 36; // ノード中心の半径（コンテナ半幅に対する%）
+  const NODE_W = 26; // ノード幅（%）
+  const RING = RP * 2; // 補助円の直径（%）
   return (
-    <div style={{ position: "relative", width: SIZE, height: SIZE, margin: "0 auto", maxWidth: "100%" }}>
+    <div style={{ position: "relative", width: "100%", maxWidth: 460, aspectRatio: "1 / 1", margin: "0 auto" }}>
       {/* 円環の補助線 */}
-      <div style={{ position: "absolute", top: center - R, left: center - R, width: R * 2, height: R * 2, borderRadius: "50%", border: `1.5px dashed ${color}55` }} />
+      <div style={{ position: "absolute", top: `${50 - RP}%`, left: `${50 - RP}%`, width: `${RING}%`, height: `${RING}%`, borderRadius: "50%", border: `1.5px dashed ${color}55` }} />
       {/* 中心：ロックの核 */}
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 150, textAlign: "center", background: color, color: T.white, borderRadius: 10, padding: "8px 10px" }}>
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "34%", maxWidth: 150, textAlign: "center", background: color, color: T.white, borderRadius: 10, padding: "8px 10px", boxShadow: `0 2px 8px ${color}44` }}>
         <div style={{ fontSize: 9.5, fontWeight: 800, opacity: 0.85 }}>選ばれ続ける理由</div>
-        <div style={{ fontSize: 12.5, fontWeight: 800, lineHeight: 1.4, marginTop: 2 }}>{coreReason || "—"}</div>
+        <div style={{ fontSize: 12, fontWeight: 800, lineHeight: 1.35, marginTop: 2 }}>{coreReason || "—"}</div>
       </div>
       {/* ループのノード（時計回り、12時起点） */}
       {loop.map((node, i) => {
         const angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
-        const x = center + R * Math.cos(angle);
-        const y = center + R * Math.sin(angle);
+        const left = 50 + RP * Math.cos(angle);
+        const top = 50 + RP * Math.sin(angle);
         return (
-          <div key={i} style={{ position: "absolute", top: y, left: x, transform: "translate(-50%, -50%)", width: 92, textAlign: "center" }}>
-            <div style={{ background: T.white, border: `1px solid ${color}66`, borderRadius: 8, padding: "5px 6px", boxShadow: `0 1px 3px ${color}22` }}>
-              <span style={{ fontSize: 9, fontWeight: 800, color, display: "block" }}>{i + 1}{i === n - 1 ? " ↺" : " →"}</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: T.ink, lineHeight: 1.3 }}>{node}</span>
+          <div key={i} style={{ position: "absolute", top: `${top}%`, left: `${left}%`, transform: "translate(-50%, -50%)", width: `${NODE_W}%`, minWidth: 78, maxWidth: 130, textAlign: "center" }}>
+            <div style={{ background: T.white, border: `1px solid ${color}66`, borderRadius: 8, padding: "5px 7px", boxShadow: `0 1px 4px ${color}22` }}>
+              <span style={{ fontSize: 9, fontWeight: 800, color, display: "block" }}>{i + 1}{i === n - 1 ? " ↺ 先頭へ" : " →"}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: T.ink, lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{node}</span>
             </div>
           </div>
         );
