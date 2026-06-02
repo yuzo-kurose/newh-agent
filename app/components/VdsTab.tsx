@@ -278,6 +278,7 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
   const [running, setRunning] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [canvasFull, setCanvasFull] = useState(false);
+  const [conceptKey, setConceptKey] = useState(0); // コンセプト一括生成時に ConceptStudio を再マウントする
   const resultsRef = useRef<VdsResults>(migrated.results);
 
   // 統合マイグレーションが発生したら一度だけ保存する。
@@ -342,7 +343,9 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
         onDelta: (t) => setRuntime((r) => ({ ...r, [id]: { ...(r[id] ?? { phase: "generating", attempt: 1 }), streamText: ((r[id]?.streamText) ?? "") + t } })),
       });
       prev[id] = data;
-      persist({ ...resultsRef.current, [id]: { data, review, attempts } });
+      // コンセプト一括生成時は4要素すべてを確定扱いにして図・スタジオに反映する。
+      const confirmedElements = id === "concept" ? CONCEPT_ELEMENTS.map((e) => e.key) : undefined;
+      persist({ ...resultsRef.current, [id]: { data, review, attempts, confirmedElements } });
       setPhase(id, { phase: "done" });
       return true;
     } catch (e) {
@@ -351,11 +354,13 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
     }
   };
 
-  // ブロック単体の生成／再生成。
+  // ブロック単体の生成／再生成。コンセプトはブリーフのみ、後続はコンセプト確定が前提。
   const generateBlock = async (id: string) => {
-    if (!brief.trim() || running || !conceptData) return;
+    if (running || !brief.trim()) return;
+    if (id !== "concept" && !conceptData) return;
     setRunning(true);
-    await runOne(id, buildPrev(id));
+    const ok = await runOne(id, id === "concept" ? {} : buildPrev(id));
+    if (id === "concept" && ok) setConceptKey((k) => k + 1);
     setRunning(false);
   };
 
@@ -397,6 +402,12 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
         プロジェクトコンテキストを起点に、まず<b>コンセプト</b>を「顧客 → 課題 → 手法 → 価値」の順に提案します。各要素はあなたのフィードバックを反映して何度でも再検証でき、確定した内容が次の要素に引き継がれます。コンセプト確定後、後続のVDSブロックを生成できます。
       </div>
 
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: T.inkMuted, marginBottom: 4 }}>案件ブリーフ（プロジェクトコンテキストから引用・編集可）</div>
+        <textarea value={brief} onChange={(e) => updateBrief(e.target.value)} placeholder="例：大手食品メーカー。50代向けの健康食品の新規事業を立ち上げたい。予算は半年・チーム3名。"
+          style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 15, lineHeight: 1.6, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
+      </div>
+
       {/* VDS全体図（確定した要素・生成済みブロックから埋まる） */}
       <div style={{ background: T.offWhite, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
         <div onClick={() => toggle("canvas")} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: collapsed.canvas ? 0 : 10, cursor: "pointer", userSelect: "none" }}>
@@ -418,30 +429,32 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
         )}
       </div>
 
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: T.inkMuted, marginBottom: 4 }}>案件ブリーフ（プロジェクトコンテキストから引用・編集可）</div>
-        <textarea value={brief} onChange={(e) => updateBrief(e.target.value)} placeholder="例：大手食品メーカー。50代向けの健康食品の新規事業を立ち上げたい。予算は半年・チーム3名。"
-          style={{ width: "100%", minHeight: 80, padding: "10px 12px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 15, lineHeight: 1.6, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
-      </div>
-
       {/* コンセプト・スタジオ */}
       <div>
-        <div onClick={() => toggle("concept")} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, cursor: "pointer", userSelect: "none" }}>
-          <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed.concept ? "▶" : "▼"}</span>
-          <span style={{ width: 24, height: 24, borderRadius: 6, background: `${AGENTS.concept.color}18`, color: AGENTS.concept.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{AGENTS.concept.icon}</span>
-          <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>ブロック1：コンセプト</span>
-        </div>
-        {!collapsed.concept && <ConceptStudio brief={brief} color={AGENTS.concept.color} initialData={conceptData} initialConfirmed={conceptConfirmed} onChange={onConceptChange} />}
+        {(() => {
+          const cPhase = runtime.concept?.phase ?? (resultsState.concept ? "done" : "idle");
+          const cBusy = cPhase === "generating" || cPhase === "reviewing" || cPhase === "retry";
+          return (
+            <div onClick={() => toggle("concept")} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, cursor: "pointer", userSelect: "none", flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed.concept ? "▶" : "▼"}</span>
+              <span style={{ width: 24, height: 24, borderRadius: 6, background: `${AGENTS.concept.color}18`, color: AGENTS.concept.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{AGENTS.concept.icon}</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>ブロック1：コンセプト</span>
+              <button onClick={(e) => { e.stopPropagation(); generateBlock("concept"); }} disabled={running || !brief.trim()}
+                style={{ marginLeft: "auto", padding: "4px 11px", background: running || !brief.trim() ? T.paper : `${AGENTS.concept.color}14`, border: `1px solid ${running || !brief.trim() ? T.border : `${AGENTS.concept.color}66`}`, borderRadius: 6, color: running || !brief.trim() ? T.inkFaint : AGENTS.concept.color, fontSize: 12, fontWeight: 700, cursor: running || !brief.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+                {cBusy ? "生成中…" : resultsState.concept ? "↻ 再生成" : "生成 →"}
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); generateDownstream(); }} disabled={running || !conceptData}
+                style={{ padding: "4px 11px", background: T.white, border: `1px solid ${running || !conceptData ? T.border : T.ink}`, borderRadius: 6, color: running || !conceptData ? T.inkFaint : T.ink, fontSize: 12, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+                まとめて生成（順番に）
+              </button>
+            </div>
+          );
+        })()}
+        {!collapsed.concept && <ConceptStudio key={conceptKey} brief={brief} color={AGENTS.concept.color} initialData={conceptData} initialConfirmed={conceptConfirmed} onChange={onConceptChange} />}
       </div>
 
       {/* 戦略・収支・PJ設計ブロック */}
       <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
-          <button onClick={generateDownstream} disabled={running || !conceptData}
-            style={{ marginLeft: "auto", padding: "6px 12px", background: T.white, border: `1px solid ${running || !conceptData ? T.border : T.ink}`, borderRadius: 8, color: running || !conceptData ? T.inkFaint : T.ink, fontSize: 13, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer" }}>
-            まとめて生成（順番に）
-          </button>
-        </div>
         <div style={{ fontSize: 12.5, color: T.inkMuted, marginBottom: 10 }}>各ブロックは右側の「生成 / 再生成」ボタンで個別に生成できます。</div>
         {!conceptData && <div style={{ fontSize: 13.5, color: T.inkFaint, marginBottom: 8 }}>※ まずコンセプトを生成・確定してください（少なくとも顧客の案が必要です）。</div>}
 
