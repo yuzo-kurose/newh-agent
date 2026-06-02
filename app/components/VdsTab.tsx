@@ -66,145 +66,206 @@ const TIER_DESC: Record<CompetitorTierKey, string> = Object.fromEntries(COMPETIT
 const JUDGEMENT_LABEL: Record<JudgementAxisKey, string> = Object.fromEntries(JUDGEMENT_AXES.map((a) => [a.key, a.label])) as Record<JudgementAxisKey, string>;
 const APPEAL_LABEL: Record<AppealAxisKey, string> = Object.fromEntries(APPEAL_AXES.map((a) => [a.key, a.label])) as Record<AppealAxisKey, string>;
 
-// 戦略ブロックの構造化表示：競合の4階層 ＋ 競争軸（戦略キャンバス）。
-function StrategyExtras({ data, color }: { data: Record<string, unknown> | undefined; color: string }) {
-  const tiers: CompetitorTierEntry[] = Array.isArray(data?.competitorTiers) ? (data!.competitorTiers as CompetitorTierEntry[]) : [];
-  const axes: CompetitiveAxisEntry[] = Array.isArray(data?.competitiveAxes) ? (data!.competitiveAxes as CompetitiveAxisEntry[]) : [];
-  const summary = typeof data?.competitiveAxisSummary === "string" ? data!.competitiveAxisSummary : "";
-  const tree = (data?.advantageTree && typeof data.advantageTree === "object" ? data.advantageTree : null) as AdvantageTree | null;
+// 戦略ブロックの小見出しグループ（優位性／仕組み／持続戦略）。
+function StratGroup({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
+  return (
+    <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ background: `${color}12`, color: T.ink, padding: "7px 12px", fontSize: 13.5, fontWeight: 800, borderBottom: `1px solid ${T.borderLight}` }}>{title}</div>
+      <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 12 }}>{children}</div>
+    </div>
+  );
+}
+
+// 並列表示用の見出し付きパネル。
+function SubPanel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 800, color: T.inkMuted, marginBottom: 6 }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+const TWO_COL: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12, alignItems: "start" };
+
+function CompetitorTiersView({ tiers, color }: { tiers: CompetitorTierEntry[]; color: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {tiers.map((t, i) => (
+        <div key={i} style={{ background: T.offWhite, border: `1px solid ${T.borderLight}`, borderRadius: 6, padding: "8px 10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+            <span title={TIER_DESC[t.tier]} style={{ fontSize: 12, fontWeight: 800, padding: "1px 8px", background: `${color}18`, color, borderRadius: 10, cursor: "help" }}>{TIER_LABEL[t.tier] ?? t.tier}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: T.ink }}>{t.players}</span>
+          </div>
+          {t.overlap && <div style={{ fontSize: 13, color: T.inkLight, lineHeight: 1.5 }}>{t.overlap}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CompetitiveAxesView({ axes, summary, color }: { axes: CompetitiveAxisEntry[]; summary: string; color: string }) {
+  return (
+    <div>
+      {summary && (
+        <div style={{ background: `${color}10`, border: `1px solid ${color}40`, borderLeft: `4px solid ${color}`, borderRadius: 8, padding: "10px 12px", marginBottom: 8, fontSize: 13.5, fontWeight: 700, lineHeight: 1.6, color: T.ink }}>
+          <span style={{ fontSize: 10, fontWeight: 800, color, marginRight: 6 }}>競争軸</span>{summary}
+        </div>
+      )}
+      <div style={{ overflowX: "auto", border: `1px solid ${T.border}`, borderRadius: 8 }}>
+        <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: T.offWhite }}>
+              <th style={{ textAlign: "left", padding: "8px 10px", borderBottom: `1px solid ${T.border}`, minWidth: 120 }}>評価軸</th>
+              <th style={{ padding: "8px 8px", borderBottom: `1px solid ${T.border}`, borderLeft: `1px solid ${T.borderLight}`, color: T.inkMuted }}>判断軸</th>
+              <th style={{ padding: "8px 8px", borderBottom: `1px solid ${T.border}`, borderLeft: `1px solid ${T.borderLight}`, color: T.inkMuted }}>訴求軸</th>
+              <th style={{ padding: "8px 8px", borderBottom: `1px solid ${T.border}`, borderLeft: `1px solid ${T.borderLight}`, color: T.inkMuted }}>競争軸</th>
+            </tr>
+          </thead>
+          <tbody>
+            {axes.map((ax, i) => (
+              <tr key={i} style={{ background: ax.isCompetitiveAxis ? `${color}0F` : T.white }}>
+                <td style={{ padding: "8px 10px", borderTop: `1px solid ${T.borderLight}`, verticalAlign: "top" }}>
+                  <div style={{ fontWeight: 700, color: T.ink }}>{ax.axis}</div>
+                  {ax.note && <div style={{ fontSize: 12, color: T.inkMuted, marginTop: 2, lineHeight: 1.4 }}>{ax.note}</div>}
+                </td>
+                <td style={{ padding: "8px 8px", borderTop: `1px solid ${T.borderLight}`, borderLeft: `1px solid ${T.borderLight}`, textAlign: "center", color: T.inkLight, verticalAlign: "top" }}>{JUDGEMENT_LABEL[ax.judgement] ?? ax.judgement}</td>
+                <td style={{ padding: "8px 8px", borderTop: `1px solid ${T.borderLight}`, borderLeft: `1px solid ${T.borderLight}`, textAlign: "center", color: T.inkLight, verticalAlign: "top" }}>{APPEAL_LABEL[ax.appeal] ?? ax.appeal}</td>
+                <td style={{ padding: "8px 8px", borderTop: `1px solid ${T.borderLight}`, borderLeft: `1px solid ${T.borderLight}`, textAlign: "center", fontWeight: 800, color: ax.isCompetitiveAxis ? color : T.inkFaint, verticalAlign: "top" }}>{ax.isCompetitiveAxis ? "◎" : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AdvantageTreeView({ tree, cores, color }: { tree: AdvantageTree; cores: AdvantageCoreNode[]; color: string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
+      <div style={{ background: color, color: T.white, borderRadius: 8, padding: "10px 16px", maxWidth: 460, textAlign: "center" }}>
+        <div style={{ fontSize: 10, fontWeight: 800, opacity: 0.85, letterSpacing: "0.06em" }}>優位性フック｜なぜ選ばれるか・どこで戦うか</div>
+        <div style={{ fontSize: 16, fontWeight: 800, marginTop: 2 }}>{tree.hook || "—"}</div>
+      </div>
+      {tree.hookReason && (
+        <div style={{ fontSize: 12.5, color: T.inkMuted, lineHeight: 1.5, margin: "6px 0 0", maxWidth: 520, textAlign: "center" }}>{tree.hookReason}</div>
+      )}
+      {cores.length > 0 && <div style={{ width: 1, height: 14, background: T.border, margin: "8px 0" }} />}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", width: "100%" }}>
+        {cores.map((c, i) => (
+          <div key={i} style={{ flex: "1 1 180px", minWidth: 160, maxWidth: 280, border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
+            <div style={{ background: `${color}14`, color: T.ink, padding: "7px 10px", fontSize: 13.5, fontWeight: 800, borderBottom: `1px solid ${T.borderLight}` }}>
+              <span style={{ fontSize: 10, fontWeight: 800, color, marginRight: 5 }}>肝</span>{c.core}
+            </div>
+            <div style={{ padding: "8px 10px" }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: T.inkFaint, marginBottom: 3 }}>源泉（なぜできるか）</div>
+              {Array.isArray(c.sources) && c.sources.length > 0 ? (
+                <ul style={{ margin: 0, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 3 }}>
+                  {c.sources.map((s, j) => <li key={j} style={{ fontSize: 13, color: T.ink, lineHeight: 1.5 }}>{s}</li>)}
+                </ul>
+              ) : <div style={{ fontSize: 13, color: T.inkFaint }}>—</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LocksView({ locks, color }: { locks: LockEntry[]; color: string }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 8 }}>
+      {LOCK_APPROACHES.map((ap) => {
+        const items = locks.filter((l) => l.approach === (ap.key as LockApproachKey));
+        if (items.length === 0) return null;
+        return (
+          <div key={ap.key} style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
+            <div title={ap.desc} style={{ background: `${color}14`, color: T.ink, padding: "7px 10px", fontSize: 13, fontWeight: 800, borderBottom: `1px solid ${T.borderLight}`, cursor: "help" }}>🔒 {ap.label}</div>
+            <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {items.map((l, i) => (
+                <div key={i}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{l.pattern}</div>
+                  {l.how && <div style={{ fontSize: 12.5, color: T.inkMuted, lineHeight: 1.5, marginTop: 1 }}>{l.how}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// 戦略ブロックを「優位性／仕組み／持続戦略」の3グループに構造分割して表示する。
+function StrategyView({ data, color }: { data: Record<string, unknown> | undefined; color: string }) {
+  const d = data ?? {};
+  const fld = (k: string) => String((d as Record<string, unknown>)[k] ?? "");
+  const tiers: CompetitorTierEntry[] = Array.isArray(d.competitorTiers) ? (d.competitorTiers as CompetitorTierEntry[]) : [];
+  const axes: CompetitiveAxisEntry[] = Array.isArray(d.competitiveAxes) ? (d.competitiveAxes as CompetitiveAxisEntry[]) : [];
+  const summary = typeof d.competitiveAxisSummary === "string" ? d.competitiveAxisSummary : "";
+  const tree = (d.advantageTree && typeof d.advantageTree === "object" ? d.advantageTree : null) as AdvantageTree | null;
   const cores: AdvantageCoreNode[] = Array.isArray(tree?.cores) ? tree!.cores : [];
   const hasTree = !!tree && (!!tree.hook || cores.length > 0);
-  const locks: LockEntry[] = Array.isArray(data?.locks) ? (data!.locks as LockEntry[]) : [];
-  const cycle = (data?.sustainCycle && typeof data.sustainCycle === "object" ? data.sustainCycle : null) as SustainCycle | null;
+  const locks: LockEntry[] = Array.isArray(d.locks) ? (d.locks as LockEntry[]) : [];
+  const cycle = (d.sustainCycle && typeof d.sustainCycle === "object" ? d.sustainCycle : null) as SustainCycle | null;
   const loop: string[] = Array.isArray(cycle?.loop) ? cycle!.loop.filter((s) => typeof s === "string" && s.trim()) : [];
   const accumulations: string[] = Array.isArray(cycle?.accumulations) ? cycle!.accumulations : [];
   const hasCycle = !!cycle && (!!cycle.coreReason || loop.length > 0);
-  if (tiers.length === 0 && axes.length === 0 && !hasTree && locks.length === 0 && !hasCycle) return null;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {tiers.length > 0 && (
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: T.inkMuted, marginBottom: 6 }}>競合の可視化（4階層）</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {tiers.map((t, i) => (
-              <div key={i} style={{ background: T.offWhite, border: `1px solid ${T.borderLight}`, borderRadius: 6, padding: "8px 10px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                  <span title={TIER_DESC[t.tier]} style={{ fontSize: 12, fontWeight: 800, padding: "1px 8px", background: `${color}18`, color, borderRadius: 10, cursor: "help" }}>{TIER_LABEL[t.tier] ?? t.tier}</span>
-                  <span style={{ fontSize: 13.5, fontWeight: 700, color: T.ink }}>{t.players}</span>
-                </div>
-                {t.overlap && <div style={{ fontSize: 13, color: T.inkLight, lineHeight: 1.5 }}>{t.overlap}</div>}
-              </div>
-            ))}
-          </div>
+      {/* 優位性 */}
+      <StratGroup title="① 優位性（なぜ勝てるのか）" color={color}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <Field label="競合代替品" value={fld("competitor")} color={color} />
+          <Field label="選ばれる理由" value={fld("chosenReason")} color={color} />
         </div>
-      )}
-      {axes.length > 0 && (
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: T.inkMuted, marginBottom: 6 }}>競争軸（戦略キャンバス：判断軸 × 訴求軸）</div>
-          {summary && (
-            <div style={{ background: `${color}10`, border: `1px solid ${color}40`, borderLeft: `4px solid ${color}`, borderRadius: 8, padding: "10px 12px", marginBottom: 8, fontSize: 13.5, fontWeight: 700, lineHeight: 1.6, color: T.ink }}>
-              <span style={{ fontSize: 10, fontWeight: 800, color, marginRight: 6 }}>競争軸</span>{summary}
-            </div>
-          )}
-          <div style={{ overflowX: "auto", border: `1px solid ${T.border}`, borderRadius: 8 }}>
-            <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: T.offWhite }}>
-                  <th style={{ textAlign: "left", padding: "8px 10px", borderBottom: `1px solid ${T.border}`, minWidth: 130 }}>評価軸</th>
-                  <th style={{ padding: "8px 8px", borderBottom: `1px solid ${T.border}`, borderLeft: `1px solid ${T.borderLight}`, color: T.inkMuted }}>判断軸</th>
-                  <th style={{ padding: "8px 8px", borderBottom: `1px solid ${T.border}`, borderLeft: `1px solid ${T.borderLight}`, color: T.inkMuted }}>訴求軸</th>
-                  <th style={{ padding: "8px 8px", borderBottom: `1px solid ${T.border}`, borderLeft: `1px solid ${T.borderLight}`, color: T.inkMuted }}>競争軸</th>
-                </tr>
-              </thead>
-              <tbody>
-                {axes.map((ax, i) => (
-                  <tr key={i} style={{ background: ax.isCompetitiveAxis ? `${color}0F` : T.white }}>
-                    <td style={{ padding: "8px 10px", borderTop: `1px solid ${T.borderLight}`, verticalAlign: "top" }}>
-                      <div style={{ fontWeight: 700, color: T.ink }}>{ax.axis}</div>
-                      {ax.note && <div style={{ fontSize: 12, color: T.inkMuted, marginTop: 2, lineHeight: 1.4 }}>{ax.note}</div>}
-                    </td>
-                    <td style={{ padding: "8px 8px", borderTop: `1px solid ${T.borderLight}`, borderLeft: `1px solid ${T.borderLight}`, textAlign: "center", color: T.inkLight, verticalAlign: "top" }}>{JUDGEMENT_LABEL[ax.judgement] ?? ax.judgement}</td>
-                    <td style={{ padding: "8px 8px", borderTop: `1px solid ${T.borderLight}`, borderLeft: `1px solid ${T.borderLight}`, textAlign: "center", color: T.inkLight, verticalAlign: "top" }}>{APPEAL_LABEL[ax.appeal] ?? ax.appeal}</td>
-                    <td style={{ padding: "8px 8px", borderTop: `1px solid ${T.borderLight}`, borderLeft: `1px solid ${T.borderLight}`, textAlign: "center", fontWeight: 800, color: ax.isCompetitiveAxis ? color : T.inkFaint, verticalAlign: "top" }}>{ax.isCompetitiveAxis ? "◎" : "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {(tiers.length > 0 || axes.length > 0) && (
+          <div style={TWO_COL}>
+            {tiers.length > 0 && <SubPanel title="競合の可視化（4階層）"><CompetitorTiersView tiers={tiers} color={color} /></SubPanel>}
+            {axes.length > 0 && <SubPanel title="競争軸（判断軸 × 訴求軸）"><CompetitiveAxesView axes={axes} summary={summary} color={color} /></SubPanel>}
           </div>
-        </div>
-      )}
-      {hasTree && (
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: T.inkMuted, marginBottom: 6 }}>優位性ツリー（フック → 肝 → 源泉）</div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
-            {/* 優位性フック */}
-            <div style={{ background: color, color: T.white, borderRadius: 8, padding: "10px 16px", maxWidth: 460, textAlign: "center" }}>
-              <div style={{ fontSize: 10, fontWeight: 800, opacity: 0.85, letterSpacing: "0.06em" }}>優位性フック｜なぜ選ばれるか・どこで戦うか</div>
-              <div style={{ fontSize: 16, fontWeight: 800, marginTop: 2 }}>{tree?.hook || "—"}</div>
-            </div>
-            {tree?.hookReason && (
-              <div style={{ fontSize: 12.5, color: T.inkMuted, lineHeight: 1.5, margin: "6px 0 0", maxWidth: 520, textAlign: "center" }}>{tree.hookReason}</div>
-            )}
-            {cores.length > 0 && <div style={{ width: 1, height: 14, background: T.border, margin: "8px 0" }} />}
-            {/* 構築の肝 → 源泉 */}
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", width: "100%" }}>
-              {cores.map((c, i) => (
-                <div key={i} style={{ flex: "1 1 200px", minWidth: 180, maxWidth: 280, border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
-                  <div style={{ background: `${color}14`, color: T.ink, padding: "7px 10px", fontSize: 13.5, fontWeight: 800, borderBottom: `1px solid ${T.borderLight}` }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, color, marginRight: 5 }}>肝</span>{c.core}
-                  </div>
-                  <div style={{ padding: "8px 10px" }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: T.inkFaint, marginBottom: 3 }}>源泉（なぜできるか）</div>
-                    {Array.isArray(c.sources) && c.sources.length > 0 ? (
-                      <ul style={{ margin: 0, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 3 }}>
-                        {c.sources.map((s, j) => <li key={j} style={{ fontSize: 13, color: T.ink, lineHeight: 1.5 }}>{s}</li>)}
-                      </ul>
-                    ) : <div style={{ fontSize: 13, color: T.inkFaint }}>—</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-      {locks.length > 0 && (
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: T.inkMuted, marginBottom: 6 }}>ロック（選ばれ続ける理由のパターン）</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 8 }}>
-            {LOCK_APPROACHES.map((ap) => {
-              const items = locks.filter((l) => l.approach === (ap.key as LockApproachKey));
-              if (items.length === 0) return null;
-              return (
-                <div key={ap.key} style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
-                  <div title={ap.desc} style={{ background: `${color}14`, color: T.ink, padding: "7px 10px", fontSize: 13, fontWeight: 800, borderBottom: `1px solid ${T.borderLight}`, cursor: "help" }}>🔒 {ap.label}</div>
-                  <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
-                    {items.map((l, i) => (
-                      <div key={i}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{l.pattern}</div>
-                        {l.how && <div style={{ fontSize: 12.5, color: T.inkMuted, lineHeight: 1.5, marginTop: 1 }}>{l.how}</div>}
-                      </div>
+        )}
+        {(hasTree || hasCycle) && (
+          <div style={TWO_COL}>
+            {hasTree && <SubPanel title="優位性ツリー（フック → 肝 → 源泉）"><AdvantageTreeView tree={tree!} cores={cores} color={color} /></SubPanel>}
+            {hasCycle && (
+              <SubPanel title="持続サイクル図（蓄積 → 強化 → ロックの好循環）">
+                <SustainCycleView coreReason={cycle?.coreReason || ""} loop={loop} color={color} />
+                {accumulations.length > 0 && (
+                  <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: T.inkMuted }}>蓄積されるストック</span>
+                    {accumulations.map((a, i) => (
+                      <span key={i} style={{ fontSize: 12.5, padding: "3px 10px", background: `${color}12`, border: `1px solid ${color}33`, borderRadius: 20, color: T.ink }}>{a}</span>
                     ))}
                   </div>
-                </div>
-              );
-            })}
+                )}
+              </SubPanel>
+            )}
           </div>
+        )}
+      </StratGroup>
+
+      {/* 仕組み */}
+      <StratGroup title="② 仕組み（どう実現するのか）" color={color}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <Field label="活動・機能・仕組み" value={fld("activity")} color={color} />
+          <Field label="自社リソース" value={fld("ownResource")} color={color} />
+          <Field label="パートナーリソース" value={fld("partnerResource")} color={color} />
+          <Field label="チャネル・提供手段" value={fld("channel")} color={color} />
         </div>
-      )}
-      {hasCycle && (
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: T.inkMuted, marginBottom: 6 }}>持続サイクル図（蓄積 → 強化 → ロックの好循環）</div>
-          <SustainCycleView coreReason={cycle?.coreReason || ""} loop={loop} color={color} />
-          {accumulations.length > 0 && (
-            <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: 11, fontWeight: 800, color: T.inkMuted }}>蓄積されるストック</span>
-              {accumulations.map((a, i) => (
-                <span key={i} style={{ fontSize: 12.5, padding: "3px 10px", background: `${color}12`, border: `1px solid ${color}33`, borderRadius: 20, color: T.ink }}>{a}</span>
-              ))}
-            </div>
-          )}
+      </StratGroup>
+
+      {/* 持続戦略 */}
+      <StratGroup title="③ 持続戦略（どう選ばれ続けるのか）" color={color}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <Field label="選ばれ続ける理由（ロック）" value={fld("keepChosenReason")} color={color} />
+          <Field label="蓄積されるもの" value={fld("accumulated")} color={color} />
+          <Field label="成長・強化されるもの" value={fld("strengthened")} color={color} />
         </div>
-      )}
+        {locks.length > 0 && <SubPanel title="ロック（選ばれ続ける理由のパターン）"><LocksView locks={locks} color={color} /></SubPanel>}
+      </StratGroup>
     </div>
   );
 }
@@ -491,14 +552,15 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
                     {!busy && !res && phase !== "error" && <div style={{ fontSize: 14, color: T.inkFaint }}>未生成です。</div>}
                     {!busy && res && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                        {id === "strategy" && <StrategyExtras data={res.data as Record<string, unknown> | undefined} color={agent.color} />}
-                        {BLOCK_FIELD_LABELS[id]
-                          ? <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                              {Object.entries(BLOCK_FIELD_LABELS[id]).map(([key, label]) => (
-                                <Field key={key} label={label} value={String((res.data as Record<string, unknown>)?.[key] ?? "")} color={agent.color} />
-                              ))}
-                            </div>
-                          : <RenderValue value={res.data} />}
+                        {id === "strategy"
+                          ? <StrategyView data={res.data as Record<string, unknown> | undefined} color={agent.color} />
+                          : BLOCK_FIELD_LABELS[id]
+                            ? <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                {Object.entries(BLOCK_FIELD_LABELS[id]).map(([key, label]) => (
+                                  <Field key={key} label={label} value={String((res.data as Record<string, unknown>)?.[key] ?? "")} color={agent.color} />
+                                ))}
+                              </div>
+                            : <RenderValue value={res.data} />}
                         {res.review && <ReviewBadge review={res.review} />}
                       </div>
                     )}
