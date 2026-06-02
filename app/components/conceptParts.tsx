@@ -10,6 +10,14 @@ export function scoreColor(score: number): string {
   return `rgba(26,122,60,${0.06 + (s / 5) * 0.22})`;
 }
 
+// 句点（。！？）の後で改行を入れ、長文を文単位で読みやすくする（表示専用。閉じ括弧前では改行しない）。
+export function breakJP(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(/([。！？])(?=.)/g, "$1\n")
+    .replace(/\n(?=[」』）)\]】])/g, "");
+}
+
 export function Field({ label, value, color, onSave }: { label: string; value?: string; color: string; onSave?: (v: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
@@ -33,7 +41,7 @@ export function Field({ label, value, color, onSave }: { label: string; value?: 
           </div>
         </div>
       ) : (
-        <div style={{ fontSize: 14.5, lineHeight: 1.65, color: T.ink, whiteSpace: "pre-wrap" }}>{value || "—"}</div>
+        <div style={{ fontSize: 14.5, lineHeight: 1.65, color: T.ink, whiteSpace: "pre-wrap" }}>{value ? breakJP(value) : "—"}</div>
       )}
     </div>
   );
@@ -43,7 +51,7 @@ export function Field({ label, value, color, onSave }: { label: string; value?: 
 export function RenderValue({ value }: { value: unknown }): React.ReactElement {
   if (value === null || value === undefined || value === "") return <span style={{ color: T.inkFaint }}>—</span>;
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return <span style={{ whiteSpace: "pre-wrap" }}>{String(value)}</span>;
+    return <span style={{ whiteSpace: "pre-wrap" }}>{typeof value === "string" ? breakJP(value) : String(value)}</span>;
   }
   if (Array.isArray(value)) {
     return (

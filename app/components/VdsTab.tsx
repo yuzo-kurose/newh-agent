@@ -7,7 +7,7 @@ import {
   AdvantageTree, AdvantageCoreNode, LockEntry, LockApproachKey, SustainCycle,
 } from "../lib/constants";
 import { runBlock, BlockPhase } from "../lib/generate";
-import { Field, RenderValue } from "./conceptParts";
+import { Field, RenderValue, breakJP } from "./conceptParts";
 import ConceptStudio from "./ConceptStudio";
 import VdsCanvas from "./VdsCanvas";
 
@@ -66,16 +66,6 @@ const TIER_DESC: Record<CompetitorTierKey, string> = Object.fromEntries(COMPETIT
 const JUDGEMENT_LABEL: Record<JudgementAxisKey, string> = Object.fromEntries(JUDGEMENT_AXES.map((a) => [a.key, a.label])) as Record<JudgementAxisKey, string>;
 const APPEAL_LABEL: Record<AppealAxisKey, string> = Object.fromEntries(APPEAL_AXES.map((a) => [a.key, a.label])) as Record<AppealAxisKey, string>;
 
-// 戦略ブロックの小見出しグループ（優位性／仕組み／持続戦略）。
-function StratGroup({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
-  return (
-    <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
-      <div style={{ background: `${color}12`, color: T.ink, padding: "7px 12px", fontSize: 13.5, fontWeight: 800, borderBottom: `1px solid ${T.borderLight}` }}>{title}</div>
-      <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 12 }}>{children}</div>
-    </div>
-  );
-}
-
 // 並列表示用の見出し付きパネル。
 function SubPanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -97,7 +87,7 @@ function CompetitorTiersView({ tiers, color }: { tiers: CompetitorTierEntry[]; c
             <span title={TIER_DESC[t.tier]} style={{ fontSize: 12, fontWeight: 800, padding: "1px 8px", background: `${color}18`, color, borderRadius: 10, cursor: "help" }}>{TIER_LABEL[t.tier] ?? t.tier}</span>
             <span style={{ fontSize: 13.5, fontWeight: 700, color: T.ink }}>{t.players}</span>
           </div>
-          {t.overlap && <div style={{ fontSize: 13, color: T.inkLight, lineHeight: 1.5 }}>{t.overlap}</div>}
+          {t.overlap && <div style={{ fontSize: 13, color: T.inkLight, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{breakJP(t.overlap)}</div>}
         </div>
       ))}
     </div>
@@ -149,7 +139,7 @@ function AdvantageTreeView({ tree, cores, color }: { tree: AdvantageTree; cores:
         <div style={{ fontSize: 16, fontWeight: 800, marginTop: 2 }}>{tree.hook || "—"}</div>
       </div>
       {tree.hookReason && (
-        <div style={{ fontSize: 12.5, color: T.inkMuted, lineHeight: 1.5, margin: "6px 0 0", maxWidth: 520, textAlign: "center" }}>{tree.hookReason}</div>
+        <div style={{ fontSize: 12.5, color: T.inkMuted, lineHeight: 1.5, margin: "6px 0 0", maxWidth: 520, textAlign: "center", whiteSpace: "pre-wrap" }}>{breakJP(tree.hookReason)}</div>
       )}
       {cores.length > 0 && <div style={{ width: 1, height: 14, background: T.border, margin: "8px 0" }} />}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", width: "100%" }}>
@@ -186,7 +176,7 @@ function LocksView({ locks, color }: { locks: LockEntry[]; color: string }) {
               {items.map((l, i) => (
                 <div key={i}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: T.ink }}>{l.pattern}</div>
-                  {l.how && <div style={{ fontSize: 12.5, color: T.inkMuted, lineHeight: 1.5, marginTop: 1 }}>{l.how}</div>}
+                  {l.how && <div style={{ fontSize: 12.5, color: T.inkMuted, lineHeight: 1.5, marginTop: 1, whiteSpace: "pre-wrap" }}>{breakJP(l.how)}</div>}
                 </div>
               ))}
             </div>
@@ -197,8 +187,16 @@ function LocksView({ locks, color }: { locks: LockEntry[]; color: string }) {
   );
 }
 
-// 戦略ブロックを「優位性／仕組み／持続戦略」の3グループに構造分割して表示する。
+// 戦略ブロックを「優位性／仕組み／持続戦略」のメニュー形式（左メニュー＋右詳細）で表示する。
+const STRATEGY_GROUPS = [
+  { key: "advantage", label: "優位性", hint: "なぜ勝てるのか" },
+  { key: "mechanism", label: "仕組み", hint: "どう実現するのか" },
+  { key: "sustainability", label: "持続戦略", hint: "どう選ばれ続けるのか" },
+] as const;
+type StrategyGroupKey = (typeof STRATEGY_GROUPS)[number]["key"];
+
 function StrategyView({ data, color }: { data: Record<string, unknown> | undefined; color: string }) {
+  const [selected, setSelected] = useState<StrategyGroupKey>("advantage");
   const d = data ?? {};
   const fld = (k: string) => String((d as Record<string, unknown>)[k] ?? "");
   const tiers: CompetitorTierEntry[] = Array.isArray(d.competitorTiers) ? (d.competitorTiers as CompetitorTierEntry[]) : [];
@@ -213,59 +211,86 @@ function StrategyView({ data, color }: { data: Record<string, unknown> | undefin
   const accumulations: string[] = Array.isArray(cycle?.accumulations) ? cycle!.accumulations : [];
   const hasCycle = !!cycle && (!!cycle.coreReason || loop.length > 0);
 
+  const advantage = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <Field label="競合代替品" value={fld("competitor")} color={color} />
+        <Field label="選ばれる理由" value={fld("chosenReason")} color={color} />
+      </div>
+      {(tiers.length > 0 || axes.length > 0) && (
+        <div style={TWO_COL}>
+          {tiers.length > 0 && <SubPanel title="競合の可視化（4階層）"><CompetitorTiersView tiers={tiers} color={color} /></SubPanel>}
+          {axes.length > 0 && <SubPanel title="競争軸（判断軸 × 訴求軸）"><CompetitiveAxesView axes={axes} summary={summary} color={color} /></SubPanel>}
+        </div>
+      )}
+      {(hasTree || hasCycle) && (
+        <div style={TWO_COL}>
+          {hasTree && <SubPanel title="優位性ツリー（フック → 肝 → 源泉）"><AdvantageTreeView tree={tree!} cores={cores} color={color} /></SubPanel>}
+          {hasCycle && (
+            <SubPanel title="持続サイクル図（蓄積 → 強化 → ロックの好循環）">
+              <SustainCycleView coreReason={cycle?.coreReason || ""} loop={loop} color={color} />
+              {accumulations.length > 0 && (
+                <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: T.inkMuted }}>蓄積されるストック</span>
+                  {accumulations.map((a, i) => (
+                    <span key={i} style={{ fontSize: 12.5, padding: "3px 10px", background: `${color}12`, border: `1px solid ${color}33`, borderRadius: 20, color: T.ink }}>{a}</span>
+                  ))}
+                </div>
+              )}
+            </SubPanel>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const mechanism = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <Field label="活動・機能・仕組み" value={fld("activity")} color={color} />
+      <Field label="自社リソース" value={fld("ownResource")} color={color} />
+      <Field label="パートナーリソース" value={fld("partnerResource")} color={color} />
+      <Field label="チャネル・提供手段" value={fld("channel")} color={color} />
+    </div>
+  );
+
+  const sustainability = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <Field label="選ばれ続ける理由（ロック）" value={fld("keepChosenReason")} color={color} />
+        <Field label="蓄積されるもの" value={fld("accumulated")} color={color} />
+        <Field label="成長・強化されるもの" value={fld("strengthened")} color={color} />
+      </div>
+      {locks.length > 0 && <SubPanel title="ロック（選ばれ続ける理由のパターン）"><LocksView locks={locks} color={color} /></SubPanel>}
+    </div>
+  );
+
+  const content: Record<StrategyGroupKey, React.ReactNode> = { advantage, mechanism, sustainability };
+  const current = STRATEGY_GROUPS.find((g) => g.key === selected)!;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* 優位性 */}
-      <StratGroup title="① 優位性（なぜ勝てるのか）" color={color}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <Field label="競合代替品" value={fld("competitor")} color={color} />
-          <Field label="選ばれる理由" value={fld("chosenReason")} color={color} />
-        </div>
-        {(tiers.length > 0 || axes.length > 0) && (
-          <div style={TWO_COL}>
-            {tiers.length > 0 && <SubPanel title="競合の可視化（4階層）"><CompetitorTiersView tiers={tiers} color={color} /></SubPanel>}
-            {axes.length > 0 && <SubPanel title="競争軸（判断軸 × 訴求軸）"><CompetitiveAxesView axes={axes} summary={summary} color={color} /></SubPanel>}
-          </div>
-        )}
-        {(hasTree || hasCycle) && (
-          <div style={TWO_COL}>
-            {hasTree && <SubPanel title="優位性ツリー（フック → 肝 → 源泉）"><AdvantageTreeView tree={tree!} cores={cores} color={color} /></SubPanel>}
-            {hasCycle && (
-              <SubPanel title="持続サイクル図（蓄積 → 強化 → ロックの好循環）">
-                <SustainCycleView coreReason={cycle?.coreReason || ""} loop={loop} color={color} />
-                {accumulations.length > 0 && (
-                  <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: T.inkMuted }}>蓄積されるストック</span>
-                    {accumulations.map((a, i) => (
-                      <span key={i} style={{ fontSize: 12.5, padding: "3px 10px", background: `${color}12`, border: `1px solid ${color}33`, borderRadius: 20, color: T.ink }}>{a}</span>
-                    ))}
-                  </div>
-                )}
-              </SubPanel>
-            )}
-          </div>
-        )}
-      </StratGroup>
+    <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
+      {/* 左：メニュー */}
+      <div style={{ width: 200, flexShrink: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+        {STRATEGY_GROUPS.map((g, i) => {
+          const isSel = g.key === selected;
+          return (
+            <button key={g.key} onClick={() => setSelected(g.key)}
+              style={{ textAlign: "left", padding: "10px 12px", borderRadius: 8, cursor: "pointer", background: isSel ? T.white : "transparent", border: `1px solid ${isSel ? color : T.border}`, display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ width: 18, height: 18, borderRadius: "50%", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", background: isSel ? color : T.paper, color: isSel ? T.white : T.inkMuted }}>{i + 1}</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: isSel ? T.ink : T.inkMuted }}>{g.label}</span>
+              </div>
+              <span style={{ fontSize: 12, color: T.inkFaint, paddingLeft: 26 }}>{g.hint}</span>
+            </button>
+          );
+        })}
+      </div>
 
-      {/* 仕組み */}
-      <StratGroup title="② 仕組み（どう実現するのか）" color={color}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <Field label="活動・機能・仕組み" value={fld("activity")} color={color} />
-          <Field label="自社リソース" value={fld("ownResource")} color={color} />
-          <Field label="パートナーリソース" value={fld("partnerResource")} color={color} />
-          <Field label="チャネル・提供手段" value={fld("channel")} color={color} />
-        </div>
-      </StratGroup>
-
-      {/* 持続戦略 */}
-      <StratGroup title="③ 持続戦略（どう選ばれ続けるのか）" color={color}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <Field label="選ばれ続ける理由（ロック）" value={fld("keepChosenReason")} color={color} />
-          <Field label="蓄積されるもの" value={fld("accumulated")} color={color} />
-          <Field label="成長・強化されるもの" value={fld("strengthened")} color={color} />
-        </div>
-        {locks.length > 0 && <SubPanel title="ロック（選ばれ続ける理由のパターン）"><LocksView locks={locks} color={color} /></SubPanel>}
-      </StratGroup>
+      {/* 右：詳細 */}
+      <div style={{ flex: 1, minWidth: 280, border: `1px solid ${T.border}`, borderRadius: 10, background: T.white, padding: 16 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: T.ink, marginBottom: 12 }}>{current.label}<span style={{ fontSize: 12.5, fontWeight: 600, color: T.inkMuted, marginLeft: 8 }}>{current.hint}</span></div>
+        {content[selected]}
+      </div>
     </div>
   );
 }
