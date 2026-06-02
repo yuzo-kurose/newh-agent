@@ -325,26 +325,47 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
       return { ...r, [id]: { ...base, ...patch } };
     });
 
+  // 生成時に渡す前提データ（コンセプト＋生成済みの他ブロック。excludeは対象自身）。
+  const buildPrev = (exclude?: string): Record<string, unknown> => {
+    const prev: Record<string, unknown> = { concept: conceptData };
+    for (const d of DOWNSTREAM) if (d !== exclude && resultsRef.current[d]) prev[d] = resultsRef.current[d].data;
+    return prev;
+  };
+
+  // 1ブロックを生成（runningの制御は呼び出し側）。成否を返す。
+  const runOne = async (id: string, prev: Record<string, unknown>): Promise<boolean> => {
+    setPhase(id, { phase: "generating", attempt: 1, streamText: "", error: undefined });
+    try {
+      const { data, review, attempts } = await runBlock(id, brief, prev, {
+        onPhase: (phase, attempt) => setPhase(id, { phase, attempt }),
+        onDelta: (t) => setRuntime((r) => ({ ...r, [id]: { ...(r[id] ?? { phase: "generating", attempt: 1 }), streamText: ((r[id]?.streamText) ?? "") + t } })),
+      });
+      prev[id] = data;
+      persist({ ...resultsRef.current, [id]: { data, review, attempts } });
+      setPhase(id, { phase: "done" });
+      return true;
+    } catch (e) {
+      setPhase(id, { phase: "error", error: e instanceof Error ? e.message : "生成に失敗しました。" });
+      return false;
+    }
+  };
+
+  // ブロック単体の生成／再生成。
+  const generateBlock = async (id: string) => {
+    if (!brief.trim() || running || !conceptData) return;
+    setRunning(true);
+    await runOne(id, buildPrev(id));
+    setRunning(false);
+  };
+
+  // 後続ブロックをまとめて順番に生成（任意）。
   const generateDownstream = async () => {
     if (!brief.trim() || running || !conceptData) return;
     setRunning(true);
-    const prev: Record<string, unknown> = { concept: conceptData };
-    for (const id of DOWNSTREAM) if (resultsRef.current[id]) prev[id] = resultsRef.current[id].data;
-
+    const prev = buildPrev();
     for (const id of DOWNSTREAM) {
-      setPhase(id, { phase: "generating", attempt: 1, streamText: "", error: undefined });
-      try {
-        const { data, review, attempts } = await runBlock(id, brief, prev, {
-          onPhase: (phase, attempt) => setPhase(id, { phase, attempt }),
-          onDelta: (t) => setRuntime((r) => ({ ...r, [id]: { ...(r[id] ?? { phase: "generating", attempt: 1 }), streamText: ((r[id]?.streamText) ?? "") + t } })),
-        });
-        prev[id] = data;
-        persist({ ...resultsRef.current, [id]: { data, review, attempts } });
-        setPhase(id, { phase: "done" });
-      } catch (e) {
-        setPhase(id, { phase: "error", error: e instanceof Error ? e.message : "生成に失敗しました。" });
-        break;
-      }
+      const ok = await runOne(id, prev);
+      if (!ok) break;
     }
     setRunning(false);
   };
@@ -414,13 +435,14 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
 
       {/* 後続ブロック */}
       <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>後続ブロック（戦略・持続・収支・PJ設計）</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>後続ブロック（戦略・収支・PJ設計）</span>
           <button onClick={generateDownstream} disabled={running || !conceptData}
-            style={{ marginLeft: "auto", padding: "8px 14px", background: running || !conceptData ? T.paper : T.ink, border: "none", borderRadius: 8, color: running || !conceptData ? T.inkFaint : T.white, fontSize: 14, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer" }}>
-            後続ブロックを生成 →
+            style={{ marginLeft: "auto", padding: "6px 12px", background: T.white, border: `1px solid ${running || !conceptData ? T.border : T.ink}`, borderRadius: 8, color: running || !conceptData ? T.inkFaint : T.ink, fontSize: 13, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer" }}>
+            まとめて生成（順番に）
           </button>
         </div>
+        <div style={{ fontSize: 12.5, color: T.inkMuted, marginBottom: 10 }}>各ブロックは右側の「生成 / 再生成」ボタンで個別に生成できます。</div>
         {!conceptData && <div style={{ fontSize: 13.5, color: T.inkFaint, marginBottom: 8 }}>※ まずコンセプトを生成・確定してください（少なくとも顧客の案が必要です）。</div>}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -436,7 +458,11 @@ export default function VdsTab({ projectId, projectContext, results, onPersist }
                   <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed[id] ? "▶" : "▼"}</span>
                   <span style={{ width: 24, height: 24, borderRadius: 6, background: `${agent.color}18`, color: agent.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{agent.icon}</span>
                   <span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{agent.label}</span>
-                  <span style={{ marginLeft: "auto", fontSize: 13, color: phase === "error" ? T.red : phase === "done" ? T.green : T.inkMuted }}>
+                  <button onClick={(e) => { e.stopPropagation(); generateBlock(id); }} disabled={running || !conceptData}
+                    style={{ marginLeft: "auto", padding: "4px 11px", background: running || !conceptData ? T.paper : `${agent.color}14`, border: `1px solid ${running || !conceptData ? T.border : `${agent.color}66`}`, borderRadius: 6, color: running || !conceptData ? T.inkFaint : agent.color, fontSize: 12, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+                    {busy ? "生成中…" : res ? "↻ 再生成" : "生成 →"}
+                  </button>
+                  <span style={{ fontSize: 13, color: phase === "error" ? T.red : phase === "done" ? T.green : T.inkMuted, whiteSpace: "nowrap" }}>
                     {PHASE_LABEL[phase]}{busy && rt?.attempt ? `（試行${rt.attempt}）` : ""}
                   </span>
                 </div>
