@@ -732,10 +732,6 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
             style={{ marginLeft: "auto", padding: "4px 11px", background: running || !brief.trim() ? T.paper : `${AGENTS.concept.color}14`, border: `1px solid ${running || !brief.trim() ? T.border : `${AGENTS.concept.color}66`}`, borderRadius: 6, color: running || !brief.trim() ? T.inkFaint : AGENTS.concept.color, fontSize: 12, fontWeight: 700, cursor: running || !brief.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
             {cBusy ? "生成中…" : resultsState.concept ? "↻ 再生成" : "生成 →"}
           </button>
-          <button onClick={(e) => { e.stopPropagation(); generateDownstream(); }} disabled={running || !conceptData}
-            style={{ padding: "4px 11px", background: T.white, border: `1px solid ${running || !conceptData ? T.border : T.ink}`, borderRadius: 6, color: running || !conceptData ? T.inkFaint : T.ink, fontSize: 12, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
-            まとめて生成（順番に）
-          </button>
         </div>
         {!collapsed.concept && <div style={{ padding: "12px 14px" }}><ConceptStudio key={conceptKey} brief={brief} color={AGENTS.concept.color} initialData={conceptData} initialConfirmed={conceptConfirmed} onChange={onConceptChange} /></div>}
       </div>
@@ -808,7 +804,7 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
     ));
 
   // サイクル各段のアコーディオン（関数として呼び出しインライン展開し、子の再マウントを防ぐ）。
-  const renderPhase = (pid: string, mark: string, title: string, hint: string, children: React.ReactNode) => {
+  const renderPhase = (pid: string, mark: string, title: string, hint: string, children: React.ReactNode, headerAction?: React.ReactNode) => {
     const open = !collapsed[pid];
     return (
       <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden", background: T.offWhite }}>
@@ -817,6 +813,7 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
           <span style={{ width: 26, height: 26, borderRadius: "50%", background: T.ink, color: T.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{mark}</span>
           <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>{title}</span>
           <span style={{ fontSize: 12, color: T.inkMuted }}>{hint}</span>
+          {headerAction && <span style={{ marginLeft: "auto" }}>{headerAction}</span>}
         </div>
         {open && <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>{children}</div>}
       </div>
@@ -890,6 +887,11 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
           {renderConceptCard()}
           {DOWNSTREAM.map((id) => renderGenCard(id))}
         </>
+      ), (
+        <button onClick={(e) => { e.stopPropagation(); generateDownstream(); }} disabled={running || !conceptData}
+          style={{ padding: "5px 12px", background: running || !conceptData ? T.paper : T.ink, border: `1px solid ${running || !conceptData ? T.border : T.ink}`, borderRadius: 8, color: running || !conceptData ? T.inkFaint : T.white, fontSize: 12.5, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+          まとめて生成（順番に）
+        </button>
       ))}
 
       {/* （ⅱ）現在地/弱点を見える化 */}
