@@ -27,7 +27,7 @@ interface Props {
   fullWidth?: boolean; // サイドバーを閉じているときは表示領域を最大化する
 }
 
-const DOWNSTREAM = ["strategy", "revenue", "project"];
+const DOWNSTREAM = ["strategy", "revenue"];
 
 const BLOCK_FIELD_LABELS: Record<string, Record<string, string>> = {
   strategy: { competitor: "競合代替品", chosenReason: "選ばれる理由", keepChosenReason: "選ばれ続ける理由", activity: "活動・機能・仕組み", ownResource: "自社リソース", partnerResource: "パートナーリソース", channel: "チャネル・提供手段", accumulated: "蓄積されるもの", strengthened: "成長・強化されるもの" },
@@ -348,6 +348,25 @@ function migrateSustainability(results: VdsResults): { results: VdsResults; chan
   };
 }
 
+// VDS作成サイクルで扱う3ブロック。
+const CYCLE_BLOCK_KEYS = ["concept", "strategy", "revenue"] as const;
+
+// (ⅱ)(ⅲ) の手動入力カード。
+function NoteCard({ label, icon, color, value, onChange, placeholder }: { label: string; icon: string; color: string; value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${T.borderLight}` }}>
+        <span style={{ width: 24, height: 24, borderRadius: 6, background: `${color}18`, color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{icon}</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{label}</span>
+      </div>
+      <div style={{ padding: "12px 14px" }}>
+        <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+          style={{ width: "100%", minHeight: 72, padding: "9px 11px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 14.5, lineHeight: 1.65, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
+      </div>
+    </div>
+  );
+}
+
 export default function VdsTab({ projectId, projectContext, results, onPersist, fullWidth }: Props) {
   const briefKey = `newh-agent.p.${projectId}.vdsBrief`;
   const [brief, setBrief] = useState<string>(() => {
@@ -363,10 +382,24 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
   const [resultsState, setResultsState] = useState<VdsResults>(migrated.results);
   const [runtime, setRuntime] = useState<Record<string, BlockRuntime>>({});
   const [running, setRunning] = useState(false);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ "phase-ii": true, "phase-iii": true });
   const [canvasFull, setCanvasFull] = useState(false);
   const [conceptKey, setConceptKey] = useState(0); // コンセプト一括生成時に ConceptStudio を再マウントする
   const resultsRef = useRef<VdsResults>(migrated.results);
+
+  // (ⅱ)現在地・弱点 /(ⅲ)ネクストアクション の手動入力（プロジェクト単位で永続化）。
+  const notesKey = `newh-agent.p.${projectId}.cycleNotes`;
+  const [notes, setNotes] = useState<Record<string, string>>(() => {
+    if (typeof window === "undefined") return {};
+    try { return JSON.parse(window.localStorage.getItem(notesKey) ?? "{}") as Record<string, string>; } catch { return {}; }
+  });
+  const setNote = (phase: string, block: string, value: string) => {
+    setNotes((prev) => {
+      const next = { ...prev, [`${phase}.${block}`]: value };
+      if (typeof window !== "undefined") window.localStorage.setItem(notesKey, JSON.stringify(next));
+      return next;
+    });
+  };
 
   // 統合マイグレーションが発生したら一度だけ保存する。
   useEffect(() => {
@@ -379,7 +412,6 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
   const conceptResult = resultsState.concept;
   const conceptData = conceptResult?.data as Partial<ConceptResult> | undefined;
   const conceptConfirmed = conceptResult?.confirmedElements ?? [];
-  const conceptReady = (conceptConfirmed?.length ?? 0) > 0 && !!conceptData;
 
   const persist = (next: VdsResults) => {
     resultsRef.current = next;
@@ -463,6 +495,103 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
     setRunning(false);
   };
 
+  // ブロック1（コンセプト）の生成カード。
+  const renderConceptCard = () => {
+    const cPhase = runtime.concept?.phase ?? (resultsState.concept ? "done" : "idle");
+    const cBusy = cPhase === "generating" || cPhase === "reviewing" || cPhase === "retry";
+    return (
+      <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+        <div onClick={() => toggle("concept")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: collapsed.concept ? "none" : `1px solid ${T.borderLight}`, cursor: "pointer", userSelect: "none", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed.concept ? "▶" : "▼"}</span>
+          <span style={{ width: 24, height: 24, borderRadius: 6, background: `${AGENTS.concept.color}18`, color: AGENTS.concept.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{AGENTS.concept.icon}</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>ブロック1：コンセプト</span>
+          <button onClick={(e) => { e.stopPropagation(); generateBlock("concept"); }} disabled={running || !brief.trim()}
+            style={{ marginLeft: "auto", padding: "4px 11px", background: running || !brief.trim() ? T.paper : `${AGENTS.concept.color}14`, border: `1px solid ${running || !brief.trim() ? T.border : `${AGENTS.concept.color}66`}`, borderRadius: 6, color: running || !brief.trim() ? T.inkFaint : AGENTS.concept.color, fontSize: 12, fontWeight: 700, cursor: running || !brief.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+            {cBusy ? "生成中…" : resultsState.concept ? "↻ 再生成" : "生成 →"}
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); generateDownstream(); }} disabled={running || !conceptData}
+            style={{ padding: "4px 11px", background: T.white, border: `1px solid ${running || !conceptData ? T.border : T.ink}`, borderRadius: 6, color: running || !conceptData ? T.inkFaint : T.ink, fontSize: 12, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+            まとめて生成（順番に）
+          </button>
+        </div>
+        {!collapsed.concept && <div style={{ padding: "12px 14px" }}><ConceptStudio key={conceptKey} brief={brief} color={AGENTS.concept.color} initialData={conceptData} initialConfirmed={conceptConfirmed} onChange={onConceptChange} /></div>}
+      </div>
+    );
+  };
+
+  // 戦略・収支ブロックの生成カード。
+  const renderGenCard = (id: string) => {
+    const agent = AGENTS[id];
+    const rt = runtime[id];
+    const res = resultsState[id];
+    const phase = rt?.phase ?? (res ? "done" : "idle");
+    const busy = phase === "generating" || phase === "reviewing" || phase === "retry";
+    return (
+      <div key={id} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+        <div onClick={() => toggle(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: collapsed[id] ? "none" : `1px solid ${T.borderLight}`, cursor: "pointer", userSelect: "none" }}>
+          <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed[id] ? "▶" : "▼"}</span>
+          <span style={{ width: 24, height: 24, borderRadius: 6, background: `${agent.color}18`, color: agent.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{agent.icon}</span>
+          <span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{agent.label}</span>
+          <button onClick={(e) => { e.stopPropagation(); generateBlock(id); }} disabled={running || !conceptData}
+            style={{ marginLeft: "auto", padding: "4px 11px", background: running || !conceptData ? T.paper : `${agent.color}14`, border: `1px solid ${running || !conceptData ? T.border : `${agent.color}66`}`, borderRadius: 6, color: running || !conceptData ? T.inkFaint : agent.color, fontSize: 12, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+            {busy ? "生成中…" : res ? "↻ 再生成" : "生成 →"}
+          </button>
+          <span style={{ fontSize: 13, color: phase === "error" ? T.red : phase === "done" ? T.green : T.inkMuted, whiteSpace: "nowrap" }}>
+            {PHASE_LABEL[phase]}{busy && rt?.attempt ? `（試行${rt.attempt}）` : ""}
+          </span>
+        </div>
+        {!collapsed[id] && (
+          <div style={{ padding: "12px 14px" }}>
+            {phase === "error" && <div style={{ fontSize: 14, color: T.red }}>⚠ {rt?.error}</div>}
+            {busy && (
+              <div style={{ fontSize: 13, color: T.inkFaint, fontFamily: "monospace", whiteSpace: "pre-wrap", maxHeight: 90, overflow: "hidden", lineHeight: 1.5 }}>
+                {rt?.streamText ? rt.streamText.slice(-400) : "生成しています…"}
+              </div>
+            )}
+            {!busy && !res && phase !== "error" && <div style={{ fontSize: 14, color: T.inkFaint }}>未生成です。</div>}
+            {!busy && res && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {id === "strategy"
+                  ? <StrategyView data={res.data as Record<string, unknown> | undefined} color={agent.color} />
+                  : BLOCK_FIELD_LABELS[id]
+                    ? <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {Object.entries(BLOCK_FIELD_LABELS[id]).map(([key, label]) => (
+                          <Field key={key} label={label} value={String((res.data as Record<string, unknown>)?.[key] ?? "")} color={agent.color} />
+                        ))}
+                      </div>
+                    : <RenderValue value={res.data} />}
+                {res.review && <ReviewBadge review={res.review} />}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // (ⅱ)(ⅲ) の手動入力ブロック群。
+  const renderNotePhase = (phase: "current" | "next", placeholderFn: (label: string) => string) =>
+    CYCLE_BLOCK_KEYS.map((k) => (
+      <NoteCard key={k} label={AGENTS[k].label} icon={AGENTS[k].icon} color={AGENTS[k].color}
+        value={notes[`${phase}.${k}`] ?? ""} onChange={(v) => setNote(phase, k, v)} placeholder={placeholderFn(AGENTS[k].label)} />
+    ));
+
+  // サイクル各段のアコーディオン（関数として呼び出しインライン展開し、子の再マウントを防ぐ）。
+  const renderPhase = (pid: string, mark: string, title: string, hint: string, children: React.ReactNode) => {
+    const open = !collapsed[pid];
+    return (
+      <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden", background: T.offWhite }}>
+        <div onClick={() => toggle(pid)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", cursor: "pointer", userSelect: "none", background: T.white, borderBottom: open ? `1px solid ${T.border}` : "none", flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{open ? "▼" : "▶"}</span>
+          <span style={{ width: 26, height: 26, borderRadius: "50%", background: T.ink, color: T.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{mark}</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>{title}</span>
+          <span style={{ fontSize: 12, color: T.inkMuted }}>{hint}</span>
+        </div>
+        {open && <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>{children}</div>}
+      </div>
+    );
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: fullWidth ? "100%" : 1600 }}>
       {canvasFull && (
@@ -486,7 +615,7 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
         </div>
       )}
       <div style={{ fontSize: 14, color: T.inkMuted, lineHeight: 1.7 }}>
-        プロジェクトコンテキストを起点に、まず<b>コンセプト</b>を「顧客 → 課題 → 手法 → 価値」の順に提案します。各要素はあなたのフィードバックを反映して何度でも再検証でき、確定した内容が次の要素に引き継がれます。コンセプト確定後、後続のVDSブロックを生成できます。
+        案件ブリーフとVDS全体図を土台に、<b>VDS作成サイクル（ⅰ→ⅱ→ⅲ）</b>を繰り返して事業構想を磨きます。（ⅰ）で初期仮説を作り、（ⅱ）で現在地・弱点を見える化し、（ⅲ）で次の一手を決めます。
       </div>
 
       <div>
@@ -516,87 +645,31 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
         )}
       </div>
 
-      <div style={{ fontSize: 12.5, color: T.inkMuted }}>各ブロックは右側の「生成 / 再生成」ボタンで個別に生成できます。</div>
-
-      {/* コンセプト・スタジオ（ブロック1） */}
-      <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
-        {(() => {
-          const cPhase = runtime.concept?.phase ?? (resultsState.concept ? "done" : "idle");
-          const cBusy = cPhase === "generating" || cPhase === "reviewing" || cPhase === "retry";
-          return (
-            <div onClick={() => toggle("concept")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: collapsed.concept ? "none" : `1px solid ${T.borderLight}`, cursor: "pointer", userSelect: "none", flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed.concept ? "▶" : "▼"}</span>
-              <span style={{ width: 24, height: 24, borderRadius: 6, background: `${AGENTS.concept.color}18`, color: AGENTS.concept.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{AGENTS.concept.icon}</span>
-              <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>ブロック1：コンセプト</span>
-              <button onClick={(e) => { e.stopPropagation(); generateBlock("concept"); }} disabled={running || !brief.trim()}
-                style={{ marginLeft: "auto", padding: "4px 11px", background: running || !brief.trim() ? T.paper : `${AGENTS.concept.color}14`, border: `1px solid ${running || !brief.trim() ? T.border : `${AGENTS.concept.color}66`}`, borderRadius: 6, color: running || !brief.trim() ? T.inkFaint : AGENTS.concept.color, fontSize: 12, fontWeight: 700, cursor: running || !brief.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
-                {cBusy ? "生成中…" : resultsState.concept ? "↻ 再生成" : "生成 →"}
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); generateDownstream(); }} disabled={running || !conceptData}
-                style={{ padding: "4px 11px", background: T.white, border: `1px solid ${running || !conceptData ? T.border : T.ink}`, borderRadius: 6, color: running || !conceptData ? T.inkFaint : T.ink, fontSize: 12, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
-                まとめて生成（順番に）
-              </button>
-            </div>
-          );
-        })()}
-        {!collapsed.concept && <div style={{ padding: "12px 14px" }}><ConceptStudio key={conceptKey} brief={brief} color={AGENTS.concept.color} initialData={conceptData} initialConfirmed={conceptConfirmed} onChange={onConceptChange} /></div>}
+      {/* VDS作成サイクル（ⅰ→ⅱ→ⅲを繰り返す） */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+        <span style={{ fontSize: 17, fontWeight: 800, color: T.ink }}>VDS作成サイクル</span>
+        <span style={{ fontSize: 12, color: T.inkMuted }}>（ⅰ）〜（ⅲ）を繰り返す</span>
       </div>
 
-      {/* 戦略・収支・PJ設計ブロック */}
-      <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16 }}>
-        {!conceptData && <div style={{ fontSize: 13.5, color: T.inkFaint, marginBottom: 8 }}>※ まずコンセプトを生成・確定してください（少なくとも顧客の案が必要です）。</div>}
+      {/* （ⅰ）初期仮説作成 */}
+      {renderPhase("phase-i", "ⅰ", "初期仮説作成", "まず仮説を作る", (
+        <>
+          <div style={{ fontSize: 12.5, color: T.inkMuted }}>各ブロックは右側の「生成 / 再生成」ボタンで個別に生成できます。</div>
+          {!conceptData && <div style={{ fontSize: 13.5, color: T.inkFaint }}>※ まずコンセプトを生成・確定してください（少なくとも顧客の案が必要です）。</div>}
+          {renderConceptCard()}
+          {DOWNSTREAM.map((id) => renderGenCard(id))}
+        </>
+      ))}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {DOWNSTREAM.map((id) => {
-            const agent = AGENTS[id];
-            const rt = runtime[id];
-            const res = resultsState[id];
-            const phase = rt?.phase ?? (res ? "done" : "idle");
-            const busy = phase === "generating" || phase === "reviewing" || phase === "retry";
-            return (
-              <div key={id} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
-                <div onClick={() => toggle(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: collapsed[id] ? "none" : `1px solid ${T.borderLight}`, cursor: "pointer", userSelect: "none" }}>
-                  <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed[id] ? "▶" : "▼"}</span>
-                  <span style={{ width: 24, height: 24, borderRadius: 6, background: `${agent.color}18`, color: agent.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{agent.icon}</span>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{agent.label}</span>
-                  <button onClick={(e) => { e.stopPropagation(); generateBlock(id); }} disabled={running || !conceptData}
-                    style={{ marginLeft: "auto", padding: "4px 11px", background: running || !conceptData ? T.paper : `${agent.color}14`, border: `1px solid ${running || !conceptData ? T.border : `${agent.color}66`}`, borderRadius: 6, color: running || !conceptData ? T.inkFaint : agent.color, fontSize: 12, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
-                    {busy ? "生成中…" : res ? "↻ 再生成" : "生成 →"}
-                  </button>
-                  <span style={{ fontSize: 13, color: phase === "error" ? T.red : phase === "done" ? T.green : T.inkMuted, whiteSpace: "nowrap" }}>
-                    {PHASE_LABEL[phase]}{busy && rt?.attempt ? `（試行${rt.attempt}）` : ""}
-                  </span>
-                </div>
-                {!collapsed[id] && (
-                  <div style={{ padding: "12px 14px" }}>
-                    {phase === "error" && <div style={{ fontSize: 14, color: T.red }}>⚠ {rt?.error}</div>}
-                    {busy && (
-                      <div style={{ fontSize: 13, color: T.inkFaint, fontFamily: "monospace", whiteSpace: "pre-wrap", maxHeight: 90, overflow: "hidden", lineHeight: 1.5 }}>
-                        {rt?.streamText ? rt.streamText.slice(-400) : "生成しています…"}
-                      </div>
-                    )}
-                    {!busy && !res && phase !== "error" && <div style={{ fontSize: 14, color: T.inkFaint }}>未生成です。</div>}
-                    {!busy && res && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                        {id === "strategy"
-                          ? <StrategyView data={res.data as Record<string, unknown> | undefined} color={agent.color} />
-                          : BLOCK_FIELD_LABELS[id]
-                            ? <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                {Object.entries(BLOCK_FIELD_LABELS[id]).map(([key, label]) => (
-                                  <Field key={key} label={label} value={String((res.data as Record<string, unknown>)?.[key] ?? "")} color={agent.color} />
-                                ))}
-                              </div>
-                            : <RenderValue value={res.data} />}
-                        {res.review && <ReviewBadge review={res.review} />}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* （ⅱ）現在地/弱点を見える化 */}
+      {renderPhase("phase-ii", "ⅱ", "現在地/弱点を見える化", "各ブロックの現在地と弱点を書き出す", (
+        <>{renderNotePhase("current", (label) => `${label} の現在地・弱点（例：〜が弱い／〜が未検証）`)}</>
+      ))}
+
+      {/* （ⅲ）ネクストアクション */}
+      {renderPhase("phase-iii", "ⅲ", "ネクストアクション", "弱点に対する次の一手を決める", (
+        <>{renderNotePhase("next", (label) => `${label} のネクストアクション（例：〜を検証する／〜を再設計する）`)}</>
+      ))}
     </div>
   );
 }
