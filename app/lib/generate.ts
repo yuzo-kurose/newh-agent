@@ -68,7 +68,7 @@ export interface RunBlockResult {
 const MAX_TOKENS: Record<string, number> = {
   concept: 7000,
   strategy: 8000,
-  revenue: 5000,
+  revenue: 7000,
 };
 
 // 1ブロックを「生成 → レビュー → (合格まで)リトライ」で生成する。

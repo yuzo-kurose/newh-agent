@@ -6,6 +6,7 @@ import {
   CompetitorTierEntry, CompetitiveAxisEntry, CompetitorTierKey, JudgementAxisKey, AppealAxisKey,
   AdvantageTree, AdvantageCoreNode, LockEntry, LockApproachKey, SustainCycle,
   COST_CATEGORIES, ECONOMICS_LAYERS, COST_PATTERNS, CostCategoryKey, CostPatternKey,
+  RECOVERY_ENGINES, PRICING_ELEMENTS, PRICING_FIT_POINTS, RecoveryEngineKey,
 } from "../lib/constants";
 import { runBlock, BlockPhase } from "../lib/generate";
 import { Field, RenderValue, breakJP } from "./conceptParts";
@@ -301,6 +302,8 @@ function StrategyView({ data, color }: { data: Record<string, unknown> | undefin
 const COST_FIELD: Record<CostCategoryKey, string> = { valueDelivery: "costValueDelivery", scaleRealization: "costScaleRealization", maintenance: "costMaintenance", launchEnhancement: "costLaunchEnhancement" };
 const ECON_FIELD: Record<string, string> = { value: "econValue", unit: "econUnit", business: "econBusiness", invest: "econInvest" };
 // 各エコノミクスでバランスする収入（アウトプット）と支出（インプット）。
+const PRICE_FIELD: Record<string, string> = { payer: "pricePayer", target: "priceTarget", timing: "priceTiming", amount: "priceAmount" };
+const FIT_FIELD: Record<string, string> = { decision: "fitDecision", issue: "fitIssue", strategy: "fitStrategy", cost: "fitCost", value: "fitValue", goal: "fitGoal" };
 const ECON_BALANCE: Record<string, { income: string; incomeField: string; expense: string; expenseField: string }> = {
   value: { income: "単価", incomeField: "unitPrice", expense: "価値提供コスト", expenseField: "costValueDelivery" },
   unit: { income: "LTV（取引利益×継続期間）", incomeField: "ltv", expense: "顧客獲得コスト（CAC）", expenseField: "costScaleRealization" },
@@ -364,6 +367,7 @@ function EconomicsFigure({ color }: { color: string }) {
 // 収支モデルブロックのメニュー（左メニュー＋右詳細）。
 const REVENUE_GROUPS = [
   { key: "basic", label: "収益基本構造", hint: "売上とコストの分解" },
+  { key: "model", label: "収益モデル", hint: "回収エンジン＋料金モデル" },
   { key: "profitability", label: "収益性構造", hint: "4階層の関係性" },
   { key: "keypoint", label: "事業成立の急所", hint: "ヘビーコストと回収軸" },
   { key: "summary", label: "サマリ", hint: "VDS図スロット" },
@@ -403,6 +407,68 @@ function RevenueView({ data, color }: { data: Record<string, unknown> | undefine
               </div>
             );
           })}
+        </div>
+      </SubPanel>
+    </div>
+  );
+
+  const recEngine = RECOVERY_ENGINES.find((e) => e.key === (fld("recoveryEngineType") as RecoveryEngineKey));
+  const model = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* 回収エンジン */}
+      <SubPanel title="回収エンジン（何を売上の源泉とするか）">
+        <div style={{ border: `1px solid ${color}40`, borderRadius: 8, overflow: "hidden" }}>
+          <div title={recEngine?.desc} style={{ background: `${color}14`, padding: "7px 10px", borderBottom: `1px solid ${T.borderLight}`, cursor: "help", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{recEngine?.label ?? "—"}</span>
+            {recEngine && <span style={{ fontSize: 11, color: T.inkMuted }}>例：{recEngine.example}</span>}
+          </div>
+          <div style={{ padding: "8px 10px", fontSize: 13.5, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld("recoveryEngine") ? breakJP(fld("recoveryEngine")) : "—"}</div>
+        </div>
+      </SubPanel>
+
+      {/* 料金モデルの4要素 */}
+      <SubPanel title="料金モデル（誰が × 何に × どのように × いくらで）">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 8 }}>
+          {PRICING_ELEMENTS.map((p) => (
+            <Field key={p.key} label={p.label} value={fld(PRICE_FIELD[p.key])} color={color} />
+          ))}
+        </div>
+        {fld("pricingModel") && <div style={{ marginTop: 8 }}><Field label="料金モデル全体" value={fld("pricingModel")} color={color} /></div>}
+      </SubPanel>
+
+      {/* 6観点の整合 */}
+      <SubPanel title="料金モデルの6観点の整合（11の問い）">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 8 }}>
+          {PRICING_FIT_POINTS.map((p) => (
+            <div key={p.key} style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
+              <div title={p.question} style={{ background: T.offWhite, padding: "7px 10px", borderBottom: `1px solid ${T.borderLight}`, fontSize: 13, fontWeight: 800, color: T.ink, cursor: "help" }}>{p.label} <span style={{ fontSize: 9, color: T.inkFaint }}>ⓘ</span></div>
+              <div style={{ padding: "8px 10px", fontSize: 13, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld(FIT_FIELD[p.key]) ? breakJP(fld(FIT_FIELD[p.key])) : "—"}</div>
+            </div>
+          ))}
+        </div>
+      </SubPanel>
+
+      {/* 設計思想 */}
+      <SubPanel title="料金モデル設計思想（重視観点 → 求められること → 理想/避けるべき）">
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ border: `1px solid ${color}40`, background: `${color}0C`, borderRadius: 8, padding: "8px 10px" }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color }}>重視すべき観点</div>
+            <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld("designEmphasis") ? breakJP(fld("designEmphasis")) : "—"}</div>
+          </div>
+          <div style={{ textAlign: "center", fontSize: 11, color: T.inkFaint }}>↓ 求められること</div>
+          <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: "8px 10px" }}>
+            <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld("designRequirement") ? breakJP(fld("designRequirement")) : "—"}</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 2 }}>
+            <div style={{ border: `1px solid ${T.green}33`, background: T.greenLight, borderRadius: 8, padding: "8px 10px" }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: T.green }}>理想的なモデル</div>
+              <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld("idealModel") ? breakJP(fld("idealModel")) : "—"}</div>
+            </div>
+            <div style={{ border: `1px solid ${T.red}33`, background: T.redLight, borderRadius: 8, padding: "8px 10px" }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: T.red }}>避けるべきモデル</div>
+              <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld("avoidModel") ? breakJP(fld("avoidModel")) : "—"}</div>
+            </div>
+          </div>
         </div>
       </SubPanel>
     </div>
@@ -486,7 +552,7 @@ function RevenueView({ data, color }: { data: Record<string, unknown> | undefine
     </div>
   );
 
-  const content: Record<RevenueGroupKey, React.ReactNode> = { basic, profitability, keypoint, summary };
+  const content: Record<RevenueGroupKey, React.ReactNode> = { basic, model, profitability, keypoint, summary };
   const current = REVENUE_GROUPS.find((g) => g.key === selected)!;
 
   return (
