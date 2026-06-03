@@ -322,34 +322,33 @@ function EconomicsFigure({ color }: { color: string }) {
   );
   return (
     <div style={{ overflowX: "auto" }}>
-      <div style={{ position: "relative", width: 580, height: 470, margin: "0 auto", fontFamily: "inherit" }}>
-        {/* ① バリューエコノミクス（左下） */}
-        <div style={{ position: "absolute", left: 18, top: 326, fontSize: 9, color: T.inkMuted }}>取引あたり利益</div>
-        {Box(56, 344, 50, 40, profit, T.white, "取引あたり利益")}
-        {Box(56, 384, 50, 44, cost, T.inkLight, "価値提供コスト")}
-        <div style={{ position: "absolute", left: 22, top: 392, fontSize: 9, fontWeight: 700, color: T.ink }}>単価</div>
-        {cap(18, 436, "①", "バリューエコノミクス", "価値単位の収益性")}
+      <div style={{ position: "relative", width: 600, height: 482, margin: "0 auto", fontFamily: "inherit" }}>
+        {/* ① バリューエコノミクス（左下）：単価 ＝ 価値提供コスト ＋ 取引あたり利益 */}
+        <div style={{ position: "absolute", left: 16, top: 384, fontSize: 9, fontWeight: 700, color: T.ink, writingMode: "vertical-rl" }}>単価</div>
+        {Box(56, 360, 50, 30, profit, T.white, "取引あたり利益")}
+        {Box(56, 390, 50, 40, cost, T.inkLight, "価値提供コスト")}
+        {cap(14, 438, "①", "バリューエコノミクス", "価値単位の収益性")}
 
-        {/* ② ユニットエコノミクス（時間軸→） */}
-        {Box(150, 344, 122, 30, cost, T.inkLight, "規模実現コスト", "(CAC)")}
-        {Box(272, 344, 78, 30, profit, T.white, "顧客あたり利益")}
-        {Box(150, 374, 200, 24, base, T.ink, "LTV")}
-        {axis(150, 404, 200, "時間")}
-        {cap(150, 412, "②", "ユニットエコノミクス", "顧客単位の収益性")}
+        {/* ② ユニットエコノミクス（時間軸→）：LTV の高さは取引あたり利益と一致（Y軸を合わせる） */}
+        {Box(140, 330, 116, 30, cost, T.inkLight, "規模実現コスト", "(CAC)")}
+        {Box(256, 330, 72, 30, profit, T.white, "顧客あたり利益")}
+        {Box(140, 360, 188, 30, base, T.ink, "LTV")}
+        {axis(140, 392, 188, "時間")}
+        {cap(140, 402, "②", "ユニットエコノミクス", "顧客単位の収益性")}
 
-        {/* ③ ビジネスエコノミクス（ボリューム↑） */}
-        <div style={{ position: "absolute", left: 232, top: 150, fontSize: 9, color: T.inkFaint, writingMode: "vertical-rl" }}>ボリューム ↑</div>
-        {Box(256, 150, 66, 156, base, T.ink, "限界利益", "顧客あたり利益×顧客数")}
-        {Box(322, 150, 78, 70, profit, T.white, "事業利益", "(営業利益)")}
-        {Box(322, 220, 78, 86, cost, T.inkLight, "維持運営コスト", "(固定費)")}
+        {/* ③ ビジネスエコノミクス（ボリューム↑）：限界利益の幅は顧客あたり利益と一致（X軸を合わせる） */}
+        <div style={{ position: "absolute", left: 240, top: 150, height: 180, fontSize: 9, color: T.inkFaint, writingMode: "vertical-rl" }}>ボリューム ↑</div>
+        {Box(256, 150, 72, 180, base, T.ink, "限界利益", "顧客あたり利益×顧客数")}
+        {Box(328, 150, 78, 90, profit, T.white, "事業利益", "(営業利益)")}
+        {Box(328, 240, 78, 90, cost, T.inkLight, "維持運営コスト", "(固定費)")}
         {cap(256, 120, "③", "ビジネスエコノミクス", "事業単位の収益性")}
 
-        {/* ④ インベストエコノミクス（時間軸→） */}
-        {Box(410, 70, 96, 70, cost, T.inkLight, "累積損失", "(初期投資含む)")}
-        {Box(506, 70, 66, 70, profit, T.white, "累積利益")}
-        {Box(410, 140, 162, 56, base, T.ink, "累積収益")}
-        {axis(410, 202, 162, "時間")}
-        {cap(410, 40, "④", "インベストエコノミクス", "投資案件単位の収益性")}
+        {/* ④ インベストエコノミクス（時間軸→）：累積収益の高さは事業利益と一致（Y軸を合わせる） */}
+        {Box(415, 60, 95, 90, cost, T.inkLight, "累積損失", "(初期投資含む)")}
+        {Box(510, 60, 65, 90, profit, T.white, "累積利益")}
+        {Box(415, 150, 160, 90, base, T.ink, "累積収益")}
+        {axis(415, 242, 160, "時間")}
+        {cap(415, 32, "④", "インベストエコノミクス", "投資案件単位の収益性")}
       </div>
     </div>
   );
@@ -392,27 +391,29 @@ function RevenueView({ data, color }: { data: Record<string, unknown> | undefine
         </div>
       </SubPanel>
 
-      {/* 4つのエコノミクスの関係性図（図10-15） */}
-      <SubPanel title="4つのエコノミクスの関係性（取引あたり利益がすべての源泉）">
-        <EconomicsFigure color={color} />
-      </SubPanel>
-
-      {/* 収益性の4階層 */}
-      <SubPanel title="収益性の4階層（バリュー → ユニット → ビジネス → インベスト）">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 8 }}>
-          {ECONOMICS_LAYERS.map((e, i) => (
-            <div key={e.key} style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
-              <div title={e.desc} style={{ background: T.offWhite, padding: "7px 10px", borderBottom: `1px solid ${T.borderLight}`, cursor: "help" }}>
-                <span style={{ fontSize: 9.5, fontWeight: 800, color, marginRight: 5 }}>{i + 1}</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{e.label}</span>
-                <span style={{ fontSize: 11, color: T.inkMuted, marginLeft: 6 }}>{e.scope}</span>
+      {/* 収益性の4階層（左：説明を縦並び／右：関係性図 図10-15） */}
+      <SubPanel title="収益性の4階層と関係性（取引あたり利益がすべての源泉）">
+        <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
+          {/* 左：各エコノミクスの説明（縦並び） */}
+          <div style={{ flex: "1 1 300px", minWidth: 280, display: "flex", flexDirection: "column", gap: 8 }}>
+            {ECONOMICS_LAYERS.map((e, i) => (
+              <div key={e.key} style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
+                <div title={e.desc} style={{ background: T.offWhite, padding: "7px 10px", borderBottom: `1px solid ${T.borderLight}`, cursor: "help" }}>
+                  <span style={{ fontSize: 9.5, fontWeight: 800, color, marginRight: 5 }}>{i + 1}</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{e.label}</span>
+                  <span style={{ fontSize: 11, color: T.inkMuted, marginLeft: 6 }}>{e.scope}</span>
+                </div>
+                <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color, lineHeight: 1.5, background: `${color}0E`, borderRadius: 6, padding: "5px 8px" }}>So what：{e.sowhat}</div>
+                  <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld(ECON_FIELD[e.key]) ? breakJP(fld(ECON_FIELD[e.key])) : "—"}</div>
+                </div>
               </div>
-              <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color, lineHeight: 1.5, background: `${color}0E`, borderRadius: 6, padding: "5px 8px" }}>So what：{e.sowhat}</div>
-                <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld(ECON_FIELD[e.key]) ? breakJP(fld(ECON_FIELD[e.key])) : "—"}</div>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          {/* 右：関係性図（図10-15） */}
+          <div style={{ flex: "1 1 360px", minWidth: 300 }}>
+            <EconomicsFigure color={color} />
+          </div>
         </div>
       </SubPanel>
 
