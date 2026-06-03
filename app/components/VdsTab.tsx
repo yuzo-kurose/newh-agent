@@ -409,9 +409,9 @@ function RevenueView({ data, color }: { data: Record<string, unknown> | undefine
   );
 
   const profitability = (
-    <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
-      {/* 左：各エコノミクスの説明（縦並び） */}
-      <div style={{ flex: "1 1 300px", minWidth: 280, display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* 各エコノミクスの説明（縦並び） */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {ECONOMICS_LAYERS.map((e, i) => {
           const bal = ECON_BALANCE[e.key];
           const incomeDetail = bal.incomeField ? fld(bal.incomeField) : "";
@@ -447,8 +447,9 @@ function RevenueView({ data, color }: { data: Record<string, unknown> | undefine
           );
         })}
       </div>
-      {/* 右：関係性図（図10-15） */}
-      <div style={{ flex: "1 1 360px", minWidth: 300 }}>
+      {/* 一番下：関係性図（図10-15） */}
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: T.inkMuted, marginBottom: 6 }}>4つのエコノミクスの関係性（図10-15）</div>
         <EconomicsFigure color={color} />
       </div>
     </div>
