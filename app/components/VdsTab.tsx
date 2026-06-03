@@ -5,7 +5,7 @@ import {
   COMPETITOR_TIERS, JUDGEMENT_AXES, APPEAL_AXES, LOCK_APPROACHES,
   CompetitorTierEntry, CompetitiveAxisEntry, CompetitorTierKey, JudgementAxisKey, AppealAxisKey,
   AdvantageTree, AdvantageCoreNode, LockEntry, LockApproachKey, SustainCycle,
-  COST_CATEGORIES, ECONOMICS_LAYERS, COST_PATTERNS, CostCategoryKey, CostPatternKey,
+  COST_CATEGORIES, COST_PATTERNS, CostCategoryKey, CostPatternKey,
 } from "../lib/constants";
 import { runBlock, BlockPhase } from "../lib/generate";
 import { Field, RenderValue, breakJP } from "./conceptParts";
@@ -299,7 +299,49 @@ function StrategyView({ data, color }: { data: Record<string, unknown> | undefin
 
 // 収支モデルブロックの構造化表示：売上の構造／コスト4分類／収益性4階層／事業成立の急所。
 const COST_FIELD: Record<CostCategoryKey, string> = { valueDelivery: "costValueDelivery", scaleRealization: "costScaleRealization", maintenance: "costMaintenance", launchEnhancement: "costLaunchEnhancement" };
-const ECON_FIELD: Record<string, string> = { value: "econValue", unit: "econUnit", business: "econBusiness", invest: "econInvest" };
+
+// EconomicsLadderView 内で参照する各層の利益評価フィールドは ECON_LADDER.econField に内包。
+
+// 4つのエコノミクスの関係性図（図10-15）。各層は「アウトプット＝コスト＋利益」で、利益が次層の素になり積み上がる。
+const ECON_LADDER = [
+  { mark: "①", name: "バリューエコノミクス", scope: "価値単位", output: "単価", cost: "価値提供コスト", costField: "costValueDelivery", profit: "取引あたり利益", econField: "econValue", bridge: "取引あたり利益が時間で積み上がる", bmLink: "提供価値・向き合う顧客/課題で支払い許容額が、価値実現の手法で価値提供コストが変わる" },
+  { mark: "②", name: "ユニットエコノミクス", scope: "顧客単位 × 時間", output: "LTV", cost: "規模実現コスト（CAC）", costField: "costScaleRealization", profit: "顧客あたり利益", econField: "econUnit", bridge: "顧客あたり利益 × 顧客数（規模）", bmLink: "選ばれ続ける理由が継続率(LTV)を、選ばれる理由が獲得ハードル(CAC)を左右。料金モデルで収入をつくる" },
+  { mark: "③", name: "ビジネスエコノミクス", scope: "事業単位 × 規模", output: "限界利益", cost: "維持運営コスト（固定費）", costField: "costMaintenance", profit: "事業利益（営業利益）", econField: "econBusiness", bridge: "事業利益が時間で累積する", bmLink: "ターゲット顧客母数×必要シェアで損益分岐顧客数。限界利益率で損益分岐売上が決まる" },
+  { mark: "④", name: "インベストエコノミクス", scope: "投資案件 × 時間", output: "累積収益", cost: "累積支出（初期投資含む）", costField: "costLaunchEnhancement", profit: "累積利益", econField: "econInvest", bridge: "", bmLink: "立上げ/強化コスト(初期投資)を含む累積支出を、事業利益の累積で回収する" },
+] as const;
+
+function EconomicsLadderView({ data, color }: { data: Record<string, unknown> | undefined; color: string }) {
+  const d = data ?? {};
+  const fld = (k: string) => String((d as Record<string, unknown>)[k] ?? "");
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      {ECON_LADDER.map((L, i) => (
+        <div key={i}>
+          <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+            <div style={{ background: `${color}10`, padding: "7px 12px", borderBottom: `1px solid ${T.borderLight}`, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ width: 20, height: 20, borderRadius: "50%", background: color, color: T.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800 }}>{L.mark}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: T.ink }}>{L.name}</span>
+              <span style={{ fontSize: 11, color: T.inkMuted }}>{L.scope}</span>
+            </div>
+            <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: T.inkMuted, marginBottom: 4 }}>アウトプット：{L.output} ＝ コスト ＋ 利益</div>
+                <div style={{ display: "flex", height: 32, borderRadius: 6, overflow: "hidden", border: `1px solid ${T.border}` }}>
+                  <div style={{ flex: 1.3, background: T.paper, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 700, color: T.inkLight, padding: "0 6px", textAlign: "center", borderRight: `1px solid ${T.border}` }}>{L.cost}</div>
+                  <div style={{ flex: 1, background: color, color: T.white, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 800, padding: "0 6px", textAlign: "center" }}>{L.profit}</div>
+                </div>
+              </div>
+              {fld(L.costField) && <div style={{ fontSize: 12.5, color: T.inkLight, lineHeight: 1.5, whiteSpace: "pre-wrap" }}><b style={{ color: T.inkMuted }}>{L.cost}：</b>{breakJP(fld(L.costField))}</div>}
+              {fld(L.econField) && <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{breakJP(fld(L.econField))}</div>}
+              <div style={{ fontSize: 11.5, color: T.inkMuted, lineHeight: 1.5, background: T.offWhite, borderRadius: 6, padding: "6px 8px" }}>🔗 {L.bmLink}</div>
+            </div>
+          </div>
+          {L.bridge && <div style={{ textAlign: "center", fontSize: 11.5, fontWeight: 700, color, padding: "5px 0" }}>↓ {L.bridge}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function RevenueView({ data, color }: { data: Record<string, unknown> | undefined; color: string }) {
   const d = data ?? {};
@@ -338,20 +380,9 @@ function RevenueView({ data, color }: { data: Record<string, unknown> | undefine
         </div>
       </SubPanel>
 
-      {/* 収益性の4階層 */}
-      <SubPanel title="収益性の4階層（バリュー → ユニット → ビジネス → インベスト）">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 8 }}>
-          {ECONOMICS_LAYERS.map((e, i) => (
-            <div key={e.key} style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
-              <div title={e.desc} style={{ background: T.offWhite, padding: "7px 10px", borderBottom: `1px solid ${T.borderLight}`, cursor: "help" }}>
-                <span style={{ fontSize: 9.5, fontWeight: 800, color, marginRight: 5 }}>{i + 1}</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{e.label}</span>
-                <span style={{ fontSize: 11, color: T.inkMuted, marginLeft: 6 }}>{e.scope}</span>
-              </div>
-              <div style={{ padding: "8px 10px", fontSize: 13.5, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld(ECON_FIELD[e.key]) ? breakJP(fld(ECON_FIELD[e.key])) : "—"}</div>
-            </div>
-          ))}
-        </div>
+      {/* 収益性の4階層（関係性図） */}
+      <SubPanel title="収益性の4階層の関係性（取引あたり利益がすべての源泉）">
+        <EconomicsLadderView data={data} color={color} />
       </SubPanel>
 
       {/* 事業成立の急所 */}
