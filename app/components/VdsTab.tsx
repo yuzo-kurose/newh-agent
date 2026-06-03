@@ -300,6 +300,13 @@ function StrategyView({ data, color }: { data: Record<string, unknown> | undefin
 // 収支モデルブロックの構造化表示：売上の構造／コスト4分類／収益性4階層／事業成立の急所。
 const COST_FIELD: Record<CostCategoryKey, string> = { valueDelivery: "costValueDelivery", scaleRealization: "costScaleRealization", maintenance: "costMaintenance", launchEnhancement: "costLaunchEnhancement" };
 const ECON_FIELD: Record<string, string> = { value: "econValue", unit: "econUnit", business: "econBusiness", invest: "econInvest" };
+// 各エコノミクスでバランスする収入（アウトプット）と支出（インプット）。
+const ECON_BALANCE: Record<string, { income: string; incomeField?: string; expense: string; expenseField: string }> = {
+  value: { income: "単価", incomeField: "unitPrice", expense: "価値提供コスト", expenseField: "costValueDelivery" },
+  unit: { income: "LTV（取引利益×継続期間）", expense: "顧客獲得コスト（CAC）", expenseField: "costScaleRealization" },
+  business: { income: "限界利益・事業売上", expense: "維持運営コスト（固定費）", expenseField: "costMaintenance" },
+  invest: { income: "累積収益", expense: "累積支出（初期投資含む）", expenseField: "costLaunchEnhancement" },
+};
 
 // 4つのエコノミクスの関係性図（図10-15）を再現した参照図。①→②→③→④へ積み上がる構造を示す。
 function EconomicsFigure({ color }: { color: string }) {
@@ -405,19 +412,40 @@ function RevenueView({ data, color }: { data: Record<string, unknown> | undefine
     <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
       {/* 左：各エコノミクスの説明（縦並び） */}
       <div style={{ flex: "1 1 300px", minWidth: 280, display: "flex", flexDirection: "column", gap: 8 }}>
-        {ECONOMICS_LAYERS.map((e, i) => (
-          <div key={e.key} style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
-            <div title={e.desc} style={{ background: T.offWhite, padding: "7px 10px", borderBottom: `1px solid ${T.borderLight}`, cursor: "help" }}>
-              <span style={{ fontSize: 9.5, fontWeight: 800, color, marginRight: 5 }}>{i + 1}</span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{e.label}</span>
-              <span style={{ fontSize: 11, color: T.inkMuted, marginLeft: 6 }}>{e.scope}</span>
+        {ECONOMICS_LAYERS.map((e, i) => {
+          const bal = ECON_BALANCE[e.key];
+          const incomeDetail = bal.incomeField ? fld(bal.incomeField) : "";
+          const expenseDetail = fld(bal.expenseField);
+          return (
+            <div key={e.key} style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
+              <div title={e.desc} style={{ background: T.offWhite, padding: "7px 10px", borderBottom: `1px solid ${T.borderLight}`, cursor: "help" }}>
+                <span style={{ fontSize: 9.5, fontWeight: 800, color, marginRight: 5 }}>{i + 1}</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{e.label}</span>
+                <span style={{ fontSize: 11, color: T.inkMuted, marginLeft: 6 }}>{e.scope}</span>
+              </div>
+              <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+                {/* 収入｜支出（2列） */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                  <div style={{ border: `1px solid ${T.green}33`, background: T.greenLight, borderRadius: 6, padding: "6px 8px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: T.green }}>収入（アウトプット）</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, marginTop: 1 }}>{bal.income}</div>
+                    {incomeDetail && <div style={{ fontSize: 12, color: T.inkLight, lineHeight: 1.5, marginTop: 1, whiteSpace: "pre-wrap" }}>{breakJP(incomeDetail)}</div>}
+                  </div>
+                  <div style={{ border: `1px solid ${T.red}33`, background: T.redLight, borderRadius: 6, padding: "6px 8px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: T.red }}>支出（インプット）</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: T.ink, marginTop: 1 }}>{bal.expense}</div>
+                    {expenseDetail && <div style={{ fontSize: 12, color: T.inkLight, lineHeight: 1.5, marginTop: 1, whiteSpace: "pre-wrap" }}>{breakJP(expenseDetail)}</div>}
+                  </div>
+                </div>
+                {/* 結論（1列） */}
+                <div style={{ border: `1px solid ${color}33`, background: `${color}0C`, borderRadius: 6, padding: "6px 8px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color }}>結論</div>
+                  <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.6, marginTop: 1, whiteSpace: "pre-wrap" }}>{fld(ECON_FIELD[e.key]) ? breakJP(fld(ECON_FIELD[e.key])) : e.sowhat}</div>
+                </div>
+              </div>
             </div>
-            <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color, lineHeight: 1.5, background: `${color}0E`, borderRadius: 6, padding: "5px 8px" }}>So what：{e.sowhat}</div>
-              <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld(ECON_FIELD[e.key]) ? breakJP(fld(ECON_FIELD[e.key])) : "—"}</div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {/* 右：関係性図（図10-15） */}
       <div style={{ flex: "1 1 360px", minWidth: 300 }}>
