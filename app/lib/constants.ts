@@ -610,10 +610,10 @@ export type CostCategoryKey = (typeof COST_CATEGORIES)[number]["key"];
 
 // 収益性の4階層（ミクロ→マクロ）。
 export const ECONOMICS_LAYERS = [
-  { key: "value", label: "バリューエコノミクス", scope: "価値単位", desc: "価値提供コストと単価のバランス。最もミクロ。ここが取れないと規模拡大も時間経過も採算成立は不可能。" },
-  { key: "unit", label: "ユニットエコノミクス", scope: "顧客単位（時間軸）", desc: "LTV（月間取引単位利益×継続利用期間）とCAC（顧客獲得費÷新規顧客数）のバランス。" },
-  { key: "business", label: "ビジネスエコノミクス", scope: "事業単位（数・規模）", desc: "限界利益（売上−変動費）で固定費を回収し単体黒字を出せるか＝損益分岐点。" },
-  { key: "invest", label: "インベストエコノミクス", scope: "投資案件", desc: "立上げ/強化コストまで含めた累積支出と累積売上のバランス。投資に資するリターンを生めるか。" },
+  { key: "value", label: "バリューエコノミクス", scope: "価値単位", desc: "価値提供コストと単価のバランス。最もミクロ。ここが取れないと規模拡大も時間経過も採算成立は不可能。", sowhat: "ここが赤字なら規模拡大も時間経過も黒字化は不可能。最優先で成立させる。" },
+  { key: "unit", label: "ユニットエコノミクス", scope: "顧客単位（時間軸）", desc: "LTV（月間取引単位利益×継続利用期間）とCAC（顧客獲得費÷新規顧客数）のバランス。", sowhat: "LTV＞CACでないと、顧客を増やすほど損失が膨らむ。" },
+  { key: "business", label: "ビジネスエコノミクス", scope: "事業単位（数・規模）", desc: "限界利益（売上−変動費）で固定費を回収し単体黒字を出せるか＝損益分岐点。", sowhat: "限界利益で固定費を回収できる顧客規模に到達できるかが分岐点。" },
+  { key: "invest", label: "インベストエコノミクス", scope: "投資案件", desc: "立上げ/強化コストまで含めた累積支出と累積売上のバランス。投資に資するリターンを生めるか。", sowhat: "初期投資を含む累積支出を、事業利益の累積で回収できるか。" },
 ] as const;
 export type EconomicsLayerKey = (typeof ECONOMICS_LAYERS)[number]["key"];
 
