@@ -137,6 +137,34 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
           {iterations > 0 && <span style={{ marginLeft: "auto", fontSize: 13, color: T.inkFaint }}>検証 {iterations} 回目</span>}
         </div>
 
+        {/* フィードバック＆アクション（上部に配置） */}
+        <div style={{ paddingBottom: 12, borderBottom: `1px solid ${T.border}`, display: "flex", flexDirection: "column", gap: 8 }}>
+          {briefChanged && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: T.orangeLight, border: `1px solid ${T.orange}40`, borderRadius: 8, padding: "8px 12px" }}>
+              <span style={{ fontSize: 12.5, color: T.orange, fontWeight: 700 }}>案件ブリーフが変更されています。</span>
+              <button onClick={generate} disabled={busy}
+                style={{ marginLeft: "auto", padding: "7px 12px", background: busy ? T.paper : T.orange, border: "none", borderRadius: 8, color: busy ? T.inkFaint : T.white, fontSize: 13, fontWeight: 700, cursor: busy ? "not-allowed" : "pointer" }}>
+                🔄 変更した案件を反映して再提案
+              </button>
+            </div>
+          )}
+          <textarea value={feedback[selected] ?? ""} onChange={(e) => setFeedback((f) => ({ ...f, [selected]: e.target.value }))}
+            placeholder={`この案へのフィードバック・修正指示（例：${el.key === "customer" ? "n1をもっと具体的に。20代の単身者に絞りたい" : el.key === "issue" ? "逼迫性が弱い。もっと切実な課題に" : el.key === "method" ? "もっと斬新な手法を。前提を疑う案も" : "価値が抽象的。得られる状態を具体的に"}）`}
+            style={{ width: "100%", minHeight: 52, padding: "9px 11px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 14.5, lineHeight: 1.6, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={generate} disabled={!canGenerate}
+              style={{ padding: "9px 16px", background: !canGenerate ? T.paper : color, border: "none", borderRadius: 8, color: !canGenerate ? T.inkFaint : T.white, fontSize: 14, fontWeight: 700, cursor: !canGenerate ? "not-allowed" : "pointer" }}>
+              {hasDraft ? "フィードバックを反映して再提案" : "案を出す"}
+            </button>
+            {hasDraft && (
+              <button onClick={confirmAndNext} disabled={busy}
+                style={{ padding: "9px 16px", background: busy ? T.paper : T.ink, border: "none", borderRadius: 8, color: busy ? T.inkFaint : T.white, fontSize: 14, fontWeight: 700, cursor: busy ? "not-allowed" : "pointer" }}>
+                {confirmed.includes(selected) ? "✓ 確定済み（次へ）" : "✓ この案で確定して次へ"}
+              </button>
+            )}
+          </div>
+        </div>
+
         {error && <div style={{ fontSize: 14, color: T.red }}>⚠ {error}</div>}
 
         {busy && (
@@ -173,34 +201,6 @@ export default function ConceptStudio({ brief, color, initialData, initialConfir
             )}
           </div>
         )}
-
-        {/* フィードバック＆アクション（下部に固定して常に操作できる） */}
-        <div style={{ position: "sticky", bottom: 0, marginTop: 4, paddingTop: 12, background: T.white, borderTop: `1px solid ${T.border}`, boxShadow: "0 -6px 14px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", gap: 8, zIndex: 2 }}>
-          {briefChanged && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: T.orangeLight, border: `1px solid ${T.orange}40`, borderRadius: 8, padding: "8px 12px" }}>
-              <span style={{ fontSize: 12.5, color: T.orange, fontWeight: 700 }}>案件ブリーフが変更されています。</span>
-              <button onClick={generate} disabled={busy}
-                style={{ marginLeft: "auto", padding: "7px 12px", background: busy ? T.paper : T.orange, border: "none", borderRadius: 8, color: busy ? T.inkFaint : T.white, fontSize: 13, fontWeight: 700, cursor: busy ? "not-allowed" : "pointer" }}>
-                🔄 変更した案件を反映して再提案
-              </button>
-            </div>
-          )}
-          <textarea value={feedback[selected] ?? ""} onChange={(e) => setFeedback((f) => ({ ...f, [selected]: e.target.value }))}
-            placeholder={`この案へのフィードバック・修正指示（例：${el.key === "customer" ? "n1をもっと具体的に。20代の単身者に絞りたい" : el.key === "issue" ? "逼迫性が弱い。もっと切実な課題に" : el.key === "method" ? "もっと斬新な手法を。前提を疑う案も" : "価値が抽象的。得られる状態を具体的に"}）`}
-            style={{ width: "100%", minHeight: 52, padding: "9px 11px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 14.5, lineHeight: 1.6, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", paddingBottom: 4 }}>
-            <button onClick={generate} disabled={!canGenerate}
-              style={{ padding: "9px 16px", background: !canGenerate ? T.paper : color, border: "none", borderRadius: 8, color: !canGenerate ? T.inkFaint : T.white, fontSize: 14, fontWeight: 700, cursor: !canGenerate ? "not-allowed" : "pointer" }}>
-              {hasDraft ? "フィードバックを反映して再提案" : "案を出す"}
-            </button>
-            {hasDraft && (
-              <button onClick={confirmAndNext} disabled={busy}
-                style={{ padding: "9px 16px", background: busy ? T.paper : T.ink, border: "none", borderRadius: 8, color: busy ? T.inkFaint : T.white, fontSize: 14, fontWeight: 700, cursor: busy ? "not-allowed" : "pointer" }}>
-                {confirmed.includes(selected) ? "✓ 確定済み（次へ）" : "✓ この案で確定して次へ"}
-              </button>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );
