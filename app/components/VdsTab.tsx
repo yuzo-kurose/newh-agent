@@ -301,11 +301,11 @@ function StrategyView({ data, color }: { data: Record<string, unknown> | undefin
 const COST_FIELD: Record<CostCategoryKey, string> = { valueDelivery: "costValueDelivery", scaleRealization: "costScaleRealization", maintenance: "costMaintenance", launchEnhancement: "costLaunchEnhancement" };
 const ECON_FIELD: Record<string, string> = { value: "econValue", unit: "econUnit", business: "econBusiness", invest: "econInvest" };
 // 各エコノミクスでバランスする収入（アウトプット）と支出（インプット）。
-const ECON_BALANCE: Record<string, { income: string; incomeField?: string; expense: string; expenseField: string }> = {
+const ECON_BALANCE: Record<string, { income: string; incomeField: string; expense: string; expenseField: string }> = {
   value: { income: "単価", incomeField: "unitPrice", expense: "価値提供コスト", expenseField: "costValueDelivery" },
-  unit: { income: "LTV（取引利益×継続期間）", expense: "顧客獲得コスト（CAC）", expenseField: "costScaleRealization" },
-  business: { income: "限界利益・事業売上", expense: "維持運営コスト（固定費）", expenseField: "costMaintenance" },
-  invest: { income: "累積収益", expense: "累積支出（初期投資含む）", expenseField: "costLaunchEnhancement" },
+  unit: { income: "LTV（取引利益×継続期間）", incomeField: "ltv", expense: "顧客獲得コスト（CAC）", expenseField: "costScaleRealization" },
+  business: { income: "限界利益・事業売上", incomeField: "marginalProfit", expense: "維持運営コスト（固定費）", expenseField: "costMaintenance" },
+  invest: { income: "累積収益", incomeField: "cumulativeRevenue", expense: "累積支出（初期投資含む）", expenseField: "costLaunchEnhancement" },
 };
 
 // 4つのエコノミクスの関係性図（図10-15）を再現した参照図。①→②→③→④へ積み上がる構造を示す。
