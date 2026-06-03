@@ -574,9 +574,9 @@ const CYCLE_BLOCK_KEYS = ["concept", "strategy", "revenue"] as const;
 // (ⅱ)(ⅲ) の手動入力カード。
 function NoteCard({ label, icon, color, value, onChange, placeholder }: { label: string; icon: string; color: string; value: string; onChange: (v: string) => void; placeholder: string }) {
   return (
-    <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${T.borderLight}` }}>
-        <span style={{ width: 24, height: 24, borderRadius: 6, background: `${color}18`, color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{icon}</span>
+    <div style={{ background: `${color}0D`, border: `1px solid ${color}33`, borderRadius: 10, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: `1px solid ${color}22` }}>
+        <span style={{ width: 24, height: 24, borderRadius: 6, background: `${color}22`, color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{icon}</span>
         <span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{label}</span>
       </div>
       <div style={{ padding: "12px 14px" }}>
@@ -605,6 +605,7 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ "phase-ii": true, "phase-iii": true });
   const [canvasFull, setCanvasFull] = useState(false);
   const [conceptKey, setConceptKey] = useState(0); // コンセプト一括生成時に ConceptStudio を再マウントする
+  const [blockFeedback, setBlockFeedback] = useState<Record<string, string>>({}); // 戦略/収支ブロックの修正指示（再生成時に反映）
   const resultsRef = useRef<VdsResults>(migrated.results);
 
   // (ⅱ)現在地・弱点 /(ⅲ)ネクストアクション の手動入力（プロジェクト単位で永続化）。
@@ -680,6 +681,7 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
       const { data, review, attempts } = await runBlock(id, brief, prev, {
         onPhase: (phase, attempt) => setPhase(id, { phase, attempt }),
         onDelta: (t) => setRuntime((r) => ({ ...r, [id]: { ...(r[id] ?? { phase: "generating", attempt: 1 }), streamText: ((r[id]?.streamText) ?? "") + t } })),
+        feedback: blockFeedback[id],
       });
       prev[id] = data;
       // コンセプト一括生成時は4要素すべてを確定扱いにして図・スタジオに反映する。
@@ -720,10 +722,10 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
     const cPhase = runtime.concept?.phase ?? (resultsState.concept ? "done" : "idle");
     const cBusy = cPhase === "generating" || cPhase === "reviewing" || cPhase === "retry";
     return (
-      <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
-        <div onClick={() => toggle("concept")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: collapsed.concept ? "none" : `1px solid ${T.borderLight}`, cursor: "pointer", userSelect: "none", flexWrap: "wrap" }}>
+      <div style={{ background: `${AGENTS.concept.color}0D`, border: `1px solid ${AGENTS.concept.color}33`, borderRadius: 10, overflow: "hidden" }}>
+        <div onClick={() => toggle("concept")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: collapsed.concept ? "none" : `1px solid ${AGENTS.concept.color}22`, cursor: "pointer", userSelect: "none", flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed.concept ? "▶" : "▼"}</span>
-          <span style={{ width: 24, height: 24, borderRadius: 6, background: `${AGENTS.concept.color}18`, color: AGENTS.concept.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{AGENTS.concept.icon}</span>
+          <span style={{ width: 24, height: 24, borderRadius: 6, background: `${AGENTS.concept.color}22`, color: AGENTS.concept.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{AGENTS.concept.icon}</span>
           <span style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>ブロック1：コンセプト</span>
           <button onClick={(e) => { e.stopPropagation(); generateBlock("concept"); }} disabled={running || !brief.trim()}
             style={{ marginLeft: "auto", padding: "4px 11px", background: running || !brief.trim() ? T.paper : `${AGENTS.concept.color}14`, border: `1px solid ${running || !brief.trim() ? T.border : `${AGENTS.concept.color}66`}`, borderRadius: 6, color: running || !brief.trim() ? T.inkFaint : AGENTS.concept.color, fontSize: 12, fontWeight: 700, cursor: running || !brief.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
@@ -747,13 +749,13 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
     const phase = rt?.phase ?? (res ? "done" : "idle");
     const busy = phase === "generating" || phase === "reviewing" || phase === "retry";
     return (
-      <div key={id} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
-        <div onClick={() => toggle(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: collapsed[id] ? "none" : `1px solid ${T.borderLight}`, cursor: "pointer", userSelect: "none" }}>
+      <div key={id} style={{ background: `${agent.color}0D`, border: `1px solid ${agent.color}33`, borderRadius: 10, overflow: "hidden" }}>
+        <div onClick={() => toggle(id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: collapsed[id] ? "none" : `1px solid ${agent.color}22`, cursor: "pointer", userSelect: "none" }}>
           <span style={{ fontSize: 13, color: T.inkFaint, width: 14 }}>{collapsed[id] ? "▶" : "▼"}</span>
-          <span style={{ width: 24, height: 24, borderRadius: 6, background: `${agent.color}18`, color: agent.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{agent.icon}</span>
+          <span style={{ width: 24, height: 24, borderRadius: 6, background: `${agent.color}22`, color: agent.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{agent.icon}</span>
           <span style={{ fontSize: 15, fontWeight: 800, color: T.ink }}>{agent.label}</span>
           <button onClick={(e) => { e.stopPropagation(); generateBlock(id); }} disabled={running || !conceptData}
-            style={{ marginLeft: "auto", padding: "4px 11px", background: running || !conceptData ? T.paper : `${agent.color}14`, border: `1px solid ${running || !conceptData ? T.border : `${agent.color}66`}`, borderRadius: 6, color: running || !conceptData ? T.inkFaint : agent.color, fontSize: 12, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+            style={{ marginLeft: "auto", padding: "4px 11px", background: running || !conceptData ? T.paper : `${agent.color}1F`, border: `1px solid ${running || !conceptData ? T.border : `${agent.color}66`}`, borderRadius: 6, color: running || !conceptData ? T.inkFaint : agent.color, fontSize: 12, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
             {busy ? "生成中…" : res ? "↻ 再生成" : "生成 →"}
           </button>
           <span style={{ fontSize: 13, color: phase === "error" ? T.red : phase === "done" ? T.green : T.inkMuted, whiteSpace: "nowrap" }}>
@@ -762,13 +764,19 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
         </div>
         {!collapsed[id] && (
           <div style={{ padding: "12px 14px" }}>
+            {/* フィードバック・修正指示（再生成時に反映） */}
+            <div style={{ marginBottom: 12 }}>
+              <textarea value={blockFeedback[id] ?? ""} onChange={(e) => setBlockFeedback((f) => ({ ...f, [id]: e.target.value }))}
+                placeholder={`このブロックへのフィードバック・修正指示（「↻ 再生成」で反映。例：${id === "strategy" ? "競争軸をもっと絞って／フックを尖らせて" : "単価をサブスク前提に／CACの圧縮策を具体化"}）`}
+                style={{ width: "100%", minHeight: 48, padding: "8px 10px", background: T.white, border: `1.5px solid ${T.border}`, borderRadius: 8, color: T.ink, fontSize: 13.5, lineHeight: 1.6, outline: "none", resize: "vertical", fontFamily: "inherit" }} />
+            </div>
             {phase === "error" && <div style={{ fontSize: 14, color: T.red }}>⚠ {rt?.error}</div>}
             {busy && (
               <div style={{ fontSize: 13, color: T.inkFaint, fontFamily: "monospace", whiteSpace: "pre-wrap", maxHeight: 90, overflow: "hidden", lineHeight: 1.5 }}>
                 {rt?.streamText ? rt.streamText.slice(-400) : "生成しています…"}
               </div>
             )}
-            {!busy && !res && phase !== "error" && <div style={{ fontSize: 14, color: T.inkFaint }}>未生成です。</div>}
+            {!busy && !res && phase !== "error" && <div style={{ fontSize: 14, color: T.inkFaint }}>未生成です。「生成 →」を押すか、上の欄に方針を書いてから生成してください。</div>}
             {!busy && res && (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {id === "strategy"

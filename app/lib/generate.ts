@@ -56,6 +56,7 @@ export interface RunBlockCallbacks {
   onPhase?: (phase: BlockPhase, attempt: number) => void;
   onDelta?: (text: string) => void;
   maxAttempts?: number;
+  feedback?: string; // ユーザーの修正指示（最優先で反映）
 }
 
 export interface RunBlockResult {
@@ -75,7 +76,7 @@ export async function runBlock(
   blockId: string,
   brief: string,
   prev: Record<string, unknown>,
-  { onPhase, onDelta, maxAttempts = 2 }: RunBlockCallbacks = {}
+  { onPhase, onDelta, maxAttempts = 2, feedback }: RunBlockCallbacks = {}
 ): Promise<RunBlockResult> {
   const agent = AGENTS[blockId];
   if (!agent) throw new Error(`未知のブロック: ${blockId}`);
@@ -83,13 +84,14 @@ export async function runBlock(
   let attempt = 0;
   let lastData: unknown = null;
   let lastReview: ReviewResult | null = null;
+  const fb = feedback?.trim() ? `\n\n【ユーザーの修正指示（最優先で反映）】\n${feedback.trim()}` : "";
 
   while (attempt < maxAttempts) {
     attempt += 1;
     onPhase?.(attempt > 1 ? "retry" : "generating", attempt);
 
     const fix = lastReview?.mustFix ? `\n\n【前回レビューの最重要改善指示】\n${lastReview.mustFix}` : "";
-    const userContent = agent.build(brief, prev) + fix;
+    const userContent = agent.build(brief, prev) + fb + fix;
     lastData = await callStreamingJSON<unknown>(agent.system, userContent, onDelta ?? (() => {}), MAX_TOKENS[blockId] ?? 2500);
 
     onPhase?.("reviewing", attempt);
