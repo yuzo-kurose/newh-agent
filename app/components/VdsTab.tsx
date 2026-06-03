@@ -5,6 +5,7 @@ import {
   COMPETITOR_TIERS, JUDGEMENT_AXES, APPEAL_AXES, LOCK_APPROACHES,
   CompetitorTierEntry, CompetitiveAxisEntry, CompetitorTierKey, JudgementAxisKey, AppealAxisKey,
   AdvantageTree, AdvantageCoreNode, LockEntry, LockApproachKey, SustainCycle,
+  COST_CATEGORIES, ECONOMICS_LAYERS, COST_PATTERNS, CostCategoryKey, CostPatternKey,
 } from "../lib/constants";
 import { runBlock, BlockPhase } from "../lib/generate";
 import { Field, RenderValue, breakJP } from "./conceptParts";
@@ -296,6 +297,99 @@ function StrategyView({ data, color }: { data: Record<string, unknown> | undefin
   );
 }
 
+// 収支モデルブロックの構造化表示：売上の構造／コスト4分類／収益性4階層／事業成立の急所。
+const COST_FIELD: Record<CostCategoryKey, string> = { valueDelivery: "costValueDelivery", scaleRealization: "costScaleRealization", maintenance: "costMaintenance", launchEnhancement: "costLaunchEnhancement" };
+const ECON_FIELD: Record<string, string> = { value: "econValue", unit: "econUnit", business: "econBusiness", invest: "econInvest" };
+
+function RevenueView({ data, color }: { data: Record<string, unknown> | undefined; color: string }) {
+  const d = data ?? {};
+  const fld = (k: string) => String((d as Record<string, unknown>)[k] ?? "");
+  const heavy = fld("heavyCost") as CostCategoryKey;
+  const pattern = COST_PATTERNS.find((p) => p.key === (fld("costPattern") as CostPatternKey));
+  const keyPoint = fld("keyPoint");
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* 売上の構造 */}
+      <SubPanel title="売上の構造（単価 × 客数 × 時間/期間）">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
+          <Field label="単価" value={fld("unitPrice")} color={color} />
+          <Field label="客数" value={fld("customers")} color={color} />
+          <Field label="時間/期間" value={fld("period")} color={color} />
+        </div>
+      </SubPanel>
+
+      {/* コスト構造（4分類） */}
+      <SubPanel title="コスト構造（4分類）">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 8 }}>
+          {COST_CATEGORIES.map((c) => {
+            const isHeavy = heavy === c.key;
+            return (
+              <div key={c.key} style={{ border: `1px solid ${isHeavy ? color : T.border}`, borderRadius: 8, overflow: "hidden", background: isHeavy ? `${color}0C` : T.white }}>
+                <div title={c.desc} style={{ background: `${color}14`, color: T.ink, padding: "7px 10px", fontSize: 13, fontWeight: 800, borderBottom: `1px solid ${T.borderLight}`, cursor: "help", display: "flex", alignItems: "center", gap: 6 }}>
+                  {c.label}{isHeavy && <span style={{ fontSize: 10, fontWeight: 800, color: T.white, background: color, borderRadius: 10, padding: "1px 7px" }}>ヘビー</span>}
+                </div>
+                <div style={{ padding: "8px 10px" }}>
+                  <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld(COST_FIELD[c.key]) ? breakJP(fld(COST_FIELD[c.key])) : "—"}</div>
+                  <div style={{ fontSize: 11, color: T.inkFaint, marginTop: 4 }}>増え方：{c.growth}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </SubPanel>
+
+      {/* 収益性の4階層 */}
+      <SubPanel title="収益性の4階層（バリュー → ユニット → ビジネス → インベスト）">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 8 }}>
+          {ECONOMICS_LAYERS.map((e, i) => (
+            <div key={e.key} style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
+              <div title={e.desc} style={{ background: T.offWhite, padding: "7px 10px", borderBottom: `1px solid ${T.borderLight}`, cursor: "help" }}>
+                <span style={{ fontSize: 9.5, fontWeight: 800, color, marginRight: 5 }}>{i + 1}</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{e.label}</span>
+                <span style={{ fontSize: 11, color: T.inkMuted, marginLeft: 6 }}>{e.scope}</span>
+              </div>
+              <div style={{ padding: "8px 10px", fontSize: 13.5, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld(ECON_FIELD[e.key]) ? breakJP(fld(ECON_FIELD[e.key])) : "—"}</div>
+            </div>
+          ))}
+        </div>
+      </SubPanel>
+
+      {/* 事業成立の急所 */}
+      <SubPanel title="事業成立の急所（ヘビーコスト → 増え方 → 回収軸）">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: T.inkMuted }}>ヘビーコスト</span>
+            <span style={{ fontSize: 12.5, fontWeight: 800, padding: "2px 10px", background: `${color}18`, color, borderRadius: 12 }}>{COST_CATEGORIES.find((c) => c.key === heavy)?.label ?? "—"}</span>
+          </div>
+          <Field label="増え方の特性（何に連動するか）" value={fld("heavyCostGrowth")} color={color} />
+          <Field label="回収軸（規模 / 時間）" value={fld("recoveryAxis")} color={color} />
+          {pattern && (
+            <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 12px", background: T.offWhite }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>コスト構造パターン：{pattern.label}</div>
+              <div style={{ fontSize: 12, color: T.inkMuted, marginTop: 3, lineHeight: 1.5 }}>例：{pattern.example}</div>
+              <div style={{ fontSize: 12.5, color: T.ink, marginTop: 3, lineHeight: 1.5 }}>焦点：{pattern.focus}</div>
+            </div>
+          )}
+          {keyPoint && (
+            <div style={{ background: `${color}10`, border: `1px solid ${color}40`, borderLeft: `4px solid ${color}`, borderRadius: 8, padding: "10px 12px", fontSize: 13.5, fontWeight: 700, lineHeight: 1.6, color: T.ink }}>
+              <span style={{ fontSize: 10, fontWeight: 800, color, marginRight: 6 }}>急所</span>{keyPoint}
+            </div>
+          )}
+        </div>
+      </SubPanel>
+
+      {/* サマリ（VDS図スロット） */}
+      <SubPanel title="サマリ（VDS全体図のスロット）">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <Field label="回収エンジン" value={fld("recoveryEngine")} color={color} />
+          <Field label="料金モデル" value={fld("pricingModel")} color={color} />
+          <Field label="採算成立" value={fld("profitability")} color={color} />
+        </div>
+      </SubPanel>
+    </div>
+  );
+}
+
 // 持続サイクル図：好循環のノードを円環状に配置し、中心にロックの核を置く。
 // 配置はコンテナ相対(%)で、正方形のアスペクト比に合わせて拡縮する（重なり防止）。
 function SustainCycleView({ coreReason, loop, color }: { coreReason: string; loop: string[]; color: string }) {
@@ -553,13 +647,15 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {id === "strategy"
                   ? <StrategyView data={res.data as Record<string, unknown> | undefined} color={agent.color} />
-                  : BLOCK_FIELD_LABELS[id]
-                    ? <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {Object.entries(BLOCK_FIELD_LABELS[id]).map(([key, label]) => (
-                          <Field key={key} label={label} value={String((res.data as Record<string, unknown>)?.[key] ?? "")} color={agent.color} />
-                        ))}
-                      </div>
-                    : <RenderValue value={res.data} />}
+                  : id === "revenue"
+                    ? <RevenueView data={res.data as Record<string, unknown> | undefined} color={agent.color} />
+                    : BLOCK_FIELD_LABELS[id]
+                      ? <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {Object.entries(BLOCK_FIELD_LABELS[id]).map(([key, label]) => (
+                            <Field key={key} label={label} value={String((res.data as Record<string, unknown>)?.[key] ?? "")} color={agent.color} />
+                          ))}
+                        </div>
+                      : <RenderValue value={res.data} />}
                 {res.review && <ReviewBadge review={res.review} />}
               </div>
             )}
