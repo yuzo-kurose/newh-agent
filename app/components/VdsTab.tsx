@@ -354,15 +354,25 @@ function EconomicsFigure({ color }: { color: string }) {
   );
 }
 
+// 収支モデルブロックのメニュー（左メニュー＋右詳細）。
+const REVENUE_GROUPS = [
+  { key: "basic", label: "収益基本構造", hint: "売上とコストの分解" },
+  { key: "profitability", label: "収益性構造", hint: "4階層の関係性" },
+  { key: "keypoint", label: "事業成立の急所", hint: "ヘビーコストと回収軸" },
+  { key: "summary", label: "サマリ", hint: "VDS図スロット" },
+] as const;
+type RevenueGroupKey = (typeof REVENUE_GROUPS)[number]["key"];
+
 function RevenueView({ data, color }: { data: Record<string, unknown> | undefined; color: string }) {
+  const [selected, setSelected] = useState<RevenueGroupKey>("basic");
   const d = data ?? {};
   const fld = (k: string) => String((d as Record<string, unknown>)[k] ?? "");
   const heavy = fld("heavyCost") as CostCategoryKey;
   const pattern = COST_PATTERNS.find((p) => p.key === (fld("costPattern") as CostPatternKey));
   const keyPoint = fld("keyPoint");
-  return (
+
+  const basic = (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* 売上の構造 */}
       <SubPanel title="売上の構造（単価 × 客数 × 時間/期間）">
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
           <Field label="単価" value={fld("unitPrice")} color={color} />
@@ -370,8 +380,6 @@ function RevenueView({ data, color }: { data: Record<string, unknown> | undefine
           <Field label="時間/期間" value={fld("period")} color={color} />
         </div>
       </SubPanel>
-
-      {/* コスト構造（4分類） */}
       <SubPanel title="コスト構造（4分類）">
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 8 }}>
           {COST_CATEGORIES.map((c) => {
@@ -390,65 +398,92 @@ function RevenueView({ data, color }: { data: Record<string, unknown> | undefine
           })}
         </div>
       </SubPanel>
+    </div>
+  );
 
-      {/* 収益性の4階層（左：説明を縦並び／右：関係性図 図10-15） */}
-      <SubPanel title="収益性の4階層と関係性（取引あたり利益がすべての源泉）">
-        <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
-          {/* 左：各エコノミクスの説明（縦並び） */}
-          <div style={{ flex: "1 1 300px", minWidth: 280, display: "flex", flexDirection: "column", gap: 8 }}>
-            {ECONOMICS_LAYERS.map((e, i) => (
-              <div key={e.key} style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
-                <div title={e.desc} style={{ background: T.offWhite, padding: "7px 10px", borderBottom: `1px solid ${T.borderLight}`, cursor: "help" }}>
-                  <span style={{ fontSize: 9.5, fontWeight: 800, color, marginRight: 5 }}>{i + 1}</span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{e.label}</span>
-                  <span style={{ fontSize: 11, color: T.inkMuted, marginLeft: 6 }}>{e.scope}</span>
-                </div>
-                <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color, lineHeight: 1.5, background: `${color}0E`, borderRadius: 6, padding: "5px 8px" }}>So what：{e.sowhat}</div>
-                  <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld(ECON_FIELD[e.key]) ? breakJP(fld(ECON_FIELD[e.key])) : "—"}</div>
-                </div>
+  const profitability = (
+    <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
+      {/* 左：各エコノミクスの説明（縦並び） */}
+      <div style={{ flex: "1 1 300px", minWidth: 280, display: "flex", flexDirection: "column", gap: 8 }}>
+        {ECONOMICS_LAYERS.map((e, i) => (
+          <div key={e.key} style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: "hidden" }}>
+            <div title={e.desc} style={{ background: T.offWhite, padding: "7px 10px", borderBottom: `1px solid ${T.borderLight}`, cursor: "help" }}>
+              <span style={{ fontSize: 9.5, fontWeight: 800, color, marginRight: 5 }}>{i + 1}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>{e.label}</span>
+              <span style={{ fontSize: 11, color: T.inkMuted, marginLeft: 6 }}>{e.scope}</span>
+            </div>
+            <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color, lineHeight: 1.5, background: `${color}0E`, borderRadius: 6, padding: "5px 8px" }}>So what：{e.sowhat}</div>
+              <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fld(ECON_FIELD[e.key]) ? breakJP(fld(ECON_FIELD[e.key])) : "—"}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* 右：関係性図（図10-15） */}
+      <div style={{ flex: "1 1 360px", minWidth: 300 }}>
+        <EconomicsFigure color={color} />
+      </div>
+    </div>
+  );
+
+  const keypoint = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        <span style={{ fontSize: 11, fontWeight: 800, color: T.inkMuted }}>ヘビーコスト</span>
+        <span style={{ fontSize: 12.5, fontWeight: 800, padding: "2px 10px", background: `${color}18`, color, borderRadius: 12 }}>{COST_CATEGORIES.find((c) => c.key === heavy)?.label ?? "—"}</span>
+      </div>
+      <Field label="増え方の特性（何に連動するか）" value={fld("heavyCostGrowth")} color={color} />
+      <Field label="回収軸（規模 / 時間）" value={fld("recoveryAxis")} color={color} />
+      {pattern && (
+        <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 12px", background: T.offWhite }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>コスト構造パターン：{pattern.label}</div>
+          <div style={{ fontSize: 12, color: T.inkMuted, marginTop: 3, lineHeight: 1.5 }}>例：{pattern.example}</div>
+          <div style={{ fontSize: 12.5, color: T.ink, marginTop: 3, lineHeight: 1.5 }}>焦点：{pattern.focus}</div>
+        </div>
+      )}
+      {keyPoint && (
+        <div style={{ background: `${color}10`, border: `1px solid ${color}40`, borderLeft: `4px solid ${color}`, borderRadius: 8, padding: "10px 12px", fontSize: 13.5, fontWeight: 700, lineHeight: 1.6, color: T.ink }}>
+          <span style={{ fontSize: 10, fontWeight: 800, color, marginRight: 6 }}>急所</span>{keyPoint}
+        </div>
+      )}
+    </div>
+  );
+
+  const summary = (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <Field label="回収エンジン" value={fld("recoveryEngine")} color={color} />
+      <Field label="料金モデル" value={fld("pricingModel")} color={color} />
+      <Field label="採算成立" value={fld("profitability")} color={color} />
+    </div>
+  );
+
+  const content: Record<RevenueGroupKey, React.ReactNode> = { basic, profitability, keypoint, summary };
+  const current = REVENUE_GROUPS.find((g) => g.key === selected)!;
+
+  return (
+    <div style={{ display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
+      {/* 左：メニュー */}
+      <div style={{ width: 200, flexShrink: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+        {REVENUE_GROUPS.map((g, i) => {
+          const isSel = g.key === selected;
+          return (
+            <button key={g.key} onClick={() => setSelected(g.key)}
+              style={{ textAlign: "left", padding: "10px 12px", borderRadius: 8, cursor: "pointer", background: isSel ? T.white : "transparent", border: `1px solid ${isSel ? color : T.border}`, display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ width: 18, height: 18, borderRadius: "50%", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", background: isSel ? color : T.paper, color: isSel ? T.white : T.inkMuted }}>{i + 1}</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: isSel ? T.ink : T.inkMuted }}>{g.label}</span>
               </div>
-            ))}
-          </div>
-          {/* 右：関係性図（図10-15） */}
-          <div style={{ flex: "1 1 360px", minWidth: 300 }}>
-            <EconomicsFigure color={color} />
-          </div>
-        </div>
-      </SubPanel>
+              <span style={{ fontSize: 12, color: T.inkFaint, paddingLeft: 26 }}>{g.hint}</span>
+            </button>
+          );
+        })}
+      </div>
 
-      {/* 事業成立の急所 */}
-      <SubPanel title="事業成立の急所（ヘビーコスト → 増え方 → 回収軸）">
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-            <span style={{ fontSize: 11, fontWeight: 800, color: T.inkMuted }}>ヘビーコスト</span>
-            <span style={{ fontSize: 12.5, fontWeight: 800, padding: "2px 10px", background: `${color}18`, color, borderRadius: 12 }}>{COST_CATEGORIES.find((c) => c.key === heavy)?.label ?? "—"}</span>
-          </div>
-          <Field label="増え方の特性（何に連動するか）" value={fld("heavyCostGrowth")} color={color} />
-          <Field label="回収軸（規模 / 時間）" value={fld("recoveryAxis")} color={color} />
-          {pattern && (
-            <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 12px", background: T.offWhite }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: T.ink }}>コスト構造パターン：{pattern.label}</div>
-              <div style={{ fontSize: 12, color: T.inkMuted, marginTop: 3, lineHeight: 1.5 }}>例：{pattern.example}</div>
-              <div style={{ fontSize: 12.5, color: T.ink, marginTop: 3, lineHeight: 1.5 }}>焦点：{pattern.focus}</div>
-            </div>
-          )}
-          {keyPoint && (
-            <div style={{ background: `${color}10`, border: `1px solid ${color}40`, borderLeft: `4px solid ${color}`, borderRadius: 8, padding: "10px 12px", fontSize: 13.5, fontWeight: 700, lineHeight: 1.6, color: T.ink }}>
-              <span style={{ fontSize: 10, fontWeight: 800, color, marginRight: 6 }}>急所</span>{keyPoint}
-            </div>
-          )}
-        </div>
-      </SubPanel>
-
-      {/* サマリ（VDS図スロット） */}
-      <SubPanel title="サマリ（VDS全体図のスロット）">
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <Field label="回収エンジン" value={fld("recoveryEngine")} color={color} />
-          <Field label="料金モデル" value={fld("pricingModel")} color={color} />
-          <Field label="採算成立" value={fld("profitability")} color={color} />
-        </div>
-      </SubPanel>
+      {/* 右：詳細 */}
+      <div style={{ flex: 1, minWidth: 280, border: `1px solid ${T.border}`, borderRadius: 10, background: T.white, padding: 16 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: T.ink, marginBottom: 12 }}>{current.label}<span style={{ fontSize: 12.5, fontWeight: 600, color: T.inkMuted, marginLeft: 8 }}>{current.hint}</span></div>
+        {content[selected]}
+      </div>
     </div>
   );
 }
