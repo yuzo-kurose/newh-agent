@@ -736,7 +736,7 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
 
   // 生成時に渡す前提データ（コンセプト＋生成済みの他ブロック。excludeは対象自身）。
   const buildPrev = (exclude?: string): Record<string, unknown> => {
-    const prev: Record<string, unknown> = { concept: conceptData };
+    const prev: Record<string, unknown> = { concept: resultsRef.current.concept?.data };
     for (const d of DOWNSTREAM) if (d !== exclude && resultsRef.current[d]) prev[d] = resultsRef.current[d].data;
     return prev;
   };
@@ -772,10 +772,16 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
     setRunning(false);
   };
 
-  // 後続ブロックをまとめて順番に生成（任意）。
+  // コンセプト→後続ブロックをまとめて順番に生成（任意）。
+  // 初回（コンセプト未生成）は、まずコンセプトから一括生成する。
   const generateDownstream = async () => {
-    if (!brief.trim() || running || !conceptData) return;
+    if (!brief.trim() || running) return;
     setRunning(true);
+    if (!resultsRef.current.concept?.data) {
+      const ok = await runOne("concept", {});
+      if (!ok) { setRunning(false); return; }
+      setConceptKey((k) => k + 1);
+    }
     const prev = buildPrev();
     for (const id of DOWNSTREAM) {
       const ok = await runOne(id, prev);
@@ -954,8 +960,8 @@ export default function VdsTab({ projectId, projectContext, results, onPersist, 
           {DOWNSTREAM.map((id) => renderGenCard(id))}
         </>
       ), (
-        <button onClick={(e) => { e.stopPropagation(); generateDownstream(); }} disabled={running || !conceptData}
-          style={{ padding: "5px 12px", background: running || !conceptData ? T.paper : T.ink, border: `1px solid ${running || !conceptData ? T.border : T.ink}`, borderRadius: 8, color: running || !conceptData ? T.inkFaint : T.white, fontSize: 12.5, fontWeight: 700, cursor: running || !conceptData ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
+        <button onClick={(e) => { e.stopPropagation(); generateDownstream(); }} disabled={running || !brief.trim()}
+          style={{ padding: "5px 12px", background: running || !brief.trim() ? T.paper : T.ink, border: `1px solid ${running || !brief.trim() ? T.border : T.ink}`, borderRadius: 8, color: running || !brief.trim() ? T.inkFaint : T.white, fontSize: 12.5, fontWeight: 700, cursor: running || !brief.trim() ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
           まとめて生成（順番に）
         </button>
       ))}
