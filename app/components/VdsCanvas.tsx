@@ -97,6 +97,8 @@ export default function VdsCanvas({ concept, conceptConfirmed, strategy, revenue
   const cBlue = T.blue, cOrange = T.orange, cGreen = T.green, cPurple = T.purple;
   const ok = (k: ConceptElementKey) => conceptConfirmed.includes(k);
   const cv = (k: ConceptElementKey, key: string) => (ok(k) ? str(concept, key) : "");
+  // micro/macro未生成の旧データ向けフォールバック（pain=据える課題, problem=向き合う問題）。
+  const cvFallback = (k: ConceptElementKey, key: string, fallbackKey: string) => cv(k, key) || cv(k, fallbackKey);
   const ec = (field: string) => (v: string) => onEditConcept(field, v);
   const eb = (block: BlockId, field: string) => (v: string) => onEditBlock(block, field, v);
 
@@ -117,8 +119,8 @@ export default function VdsCanvas({ concept, conceptConfirmed, strategy, revenue
             <Cell label="ターゲット顧客" value={cv("customer", "customer")} color={cOrange} hint="十分な市場規模の顧客" onSave={ec("customer")} fill />
 
             <RowLabel>課題</RowLabel>
-            <Cell label="超具体的な課題" value={cv("issue", "microIssue")} color={cBlue} hint="共感できる超具体的な課題" onSave={ec("microIssue")} fill />
-            <Cell label="最大公約数的な課題" value={cv("issue", "macroIssue")} color={cOrange} hint="共感できる共通課題" onSave={ec("macroIssue")} fill />
+            <Cell label="超具体的な課題" value={cvFallback("issue", "microIssue", "pain")} color={cBlue} hint="共感できる超具体的な課題" onSave={ec("microIssue")} fill />
+            <Cell label="最大公約数的な課題" value={cvFallback("issue", "macroIssue", "problem")} color={cOrange} hint="共感できる共通課題" onSave={ec("macroIssue")} fill />
 
             <RowLabel>手法</RowLabel>
             <div style={{ gridColumn: "2 / 4", display: "flex" }}>
@@ -128,7 +130,7 @@ export default function VdsCanvas({ concept, conceptConfirmed, strategy, revenue
             </div>
 
             <RowLabel>価値</RowLabel>
-            <Cell label="超具体的な価値" value={cv("value", "microValue")} color={cBlue} hint="渇望される超具体的な価値" onSave={ec("microValue")} fill />
+            <Cell label="超具体的な価値" value={cvFallback("value", "microValue", "value")} color={cBlue} hint="渇望される超具体的な価値" onSave={ec("microValue")} fill />
             <Cell label="最大公約数的な価値" value={cv("value", "macroValue")} color={cOrange} hint="渇望される共通価値" onSave={ec("macroValue")} fill />
           </div>
         </div>
