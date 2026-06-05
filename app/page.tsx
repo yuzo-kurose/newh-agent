@@ -10,6 +10,7 @@ import ChatTab from "./components/ChatTab";
 import GeneratorModal from "./components/GeneratorModal";
 import ProjectContextTab from "./components/ProjectContextTab";
 import VdsTab, { VdsResults } from "./components/VdsTab";
+import { useIsMobile } from "./lib/useIsMobile";
 
 const PROJECTS_KEY = "newh-agent.projects";
 const CURRENT_KEY = "newh-agent.currentProject";
@@ -73,6 +74,9 @@ export default function NEWhAgent() {
   const [activeTab, setActiveTab] = useState<"tasks" | "checks" | "chat">("tasks");
   const [showGenerator, setShowGenerator] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const isMobile = useIsMobile();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const closeNavOnMobile = () => { if (isMobile) setMobileNavOpen(false); };
 
   const phase = PHASES[activePhase];
   const doneTasks = phase.tasks.filter((t) => completedTasks[`${phase.id}-${t.id}`]).length;
@@ -175,26 +179,39 @@ export default function NEWhAgent() {
       {showGenerator && <GeneratorModal phase={phase} projectContext={projectContext} onApply={applyHypotheses} onClose={() => setShowGenerator(false)} />}
 
       {/* Header */}
-      <header style={{ background:T.white, borderBottom:`1px solid ${T.border}`, padding:"12px 20px", display:"flex", alignItems:"center", gap:14, flexShrink:0, boxShadow:"0 1px 0 rgba(0,0,0,0.04)" }}>
-        <div style={{ width:28, height:28, background:T.ink, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:15, color:T.white }}>N</div>
-        <div>
-          <div style={{ fontSize:16, fontWeight:800, color:T.ink, letterSpacing:"-0.02em" }}>NEWh 新規事業創出支援</div>
-          <div style={{ fontSize:12, color:T.inkFaint }}>Innovation Design & Studio</div>
+      <header style={{ background:T.white, borderBottom:`1px solid ${T.border}`, padding:isMobile?"10px 14px":"12px 20px", display:"flex", alignItems:"center", gap:isMobile?10:14, flexShrink:0, boxShadow:"0 1px 0 rgba(0,0,0,0.04)" }}>
+        {isMobile && (
+          <button onClick={() => setMobileNavOpen(o => !o)} aria-label="メニュー"
+            style={{ width:36, height:36, flexShrink:0, background:"transparent", border:`1px solid ${T.border}`, borderRadius:8, color:T.ink, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>☰</button>
+        )}
+        <div style={{ width:28, height:28, background:T.ink, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:15, color:T.white, flexShrink:0 }}>N</div>
+        <div style={{ minWidth:0 }}>
+          <div style={{ fontSize:16, fontWeight:800, color:T.ink, letterSpacing:"-0.02em", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>NEWh 新規事業創出支援</div>
+          {!isMobile && <div style={{ fontSize:12, color:T.inkFaint }}>Innovation Design & Studio</div>}
         </div>
       </header>
 
-      <div style={{ display:"flex", flex:1, overflow:"hidden", height:"calc(100vh - 57px)" }}>
-        <Sidebar
-          phases={PHASES} activePhase={activePhase} activeView={activeView}
-          onOpenContext={() => setActiveView("context")} onOpenVds={() => setActiveView("vds")}
-          setActivePhase={setActivePhaseAndView} completedTasks={completedTasks}
-          collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(p => !p)}
-          projects={projects} currentProjectId={currentId}
-          onSelectProject={selectProject} onCreateProject={createProject}
-          onRenameProject={renameProject} onDeleteProject={deleteProject}
-        />
+      <div style={{ display:"flex", flex:1, overflow:"hidden", height:"calc(100vh - 57px)", position:"relative" }}>
+        {/* モバイル：ドロワーの背景オーバーレイ */}
+        {isMobile && mobileNavOpen && (
+          <div onClick={() => setMobileNavOpen(false)}
+            style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.35)", zIndex:40 }} />
+        )}
+        <div style={isMobile
+          ? { position:"absolute", top:0, left:0, bottom:0, zIndex:50, transform:mobileNavOpen?"translateX(0)":"translateX(-100%)", transition:"transform 0.2s ease", boxShadow:mobileNavOpen?"2px 0 16px rgba(0,0,0,0.18)":"none", display:"flex" }
+          : { display:"flex", flexShrink:0 }}>
+          <Sidebar
+            phases={PHASES} activePhase={activePhase} activeView={activeView}
+            onOpenContext={() => { setActiveView("context"); closeNavOnMobile(); }} onOpenVds={() => { setActiveView("vds"); closeNavOnMobile(); }}
+            setActivePhase={(i) => { setActivePhaseAndView(i); closeNavOnMobile(); }} completedTasks={completedTasks}
+            collapsed={isMobile ? false : sidebarCollapsed} onToggleCollapse={isMobile ? () => setMobileNavOpen(false) : () => setSidebarCollapsed(p => !p)}
+            projects={projects} currentProjectId={currentId}
+            onSelectProject={(id) => { selectProject(id); closeNavOnMobile(); }} onCreateProject={createProject}
+            onRenameProject={renameProject} onDeleteProject={deleteProject}
+          />
+        </div>
 
-        <main style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        <main style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", overflow:"hidden" }}>
           {activeView==="phase" ? (
             <PhaseHeader phase={phase} progress={progress} />
           ) : (
@@ -228,7 +245,7 @@ export default function NEWhAgent() {
             </button>
           </div>}
 
-          <div style={{ flex:1, overflowY:"auto", padding:"20px" }}>
+          <div style={{ flex:1, overflowY:"auto", padding:isMobile?"12px":"20px" }}>
             {activeView==="context" && <ProjectContextTab context={projectContext} setContext={setProjectContext} />}
             {activeView==="vds" && <VdsTab key={currentId} projectId={currentId} projectContext={projectContext} results={vdsResults} onPersist={persistVdsResults} fullWidth={sidebarCollapsed} />}
             {activeView==="phase" && activeTab==="tasks" && <TasksTab phase={phase} completedTasks={completedTasks} generatedHypotheses={generatedHypotheses} taskSlides={taskSlides} projectContext={projectContext} toggleTask={toggleTask} updateHypothesis={updateHypothesis} updateTaskSlide={updateTaskSlide} />}
